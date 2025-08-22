@@ -146,7 +146,7 @@ export function Dashboard({ report, onNewReport }: DashboardProps) {
                 <TableRow key={candidate.candidate_id}>
                   <TableCell className="font-medium">{candidate.rank}</TableCell>
                   <TableCell>{candidate.name}</TableCell>
-                   <TableCell className="text-right font-mono">{(candidate.final_score * 100).toFixed(1)}%</TableCell>
+                   <TableCell className="text-right font-mono">{(candidate.final_score * 100).toFixed(1)}</TableCell>
                   <TableCell className="text-right font-mono">{candidate.UPS_percentile.toFixed(1)}%</TableCell>
                   <TableCell>
                     <Badge variant={recommendationVariant[candidate.recommendation]}>
