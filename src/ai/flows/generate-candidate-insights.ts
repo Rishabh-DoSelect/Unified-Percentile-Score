@@ -4,7 +4,7 @@
  * @fileOverview This file defines a Genkit flow for generating candidate insights, including key strengths and risks, using a large language model.
  *
  * - generateCandidateInsights - A function that triggers the candidate insights generation flow.
- * - GenerateCandidateInsightsInput - The input type for the generateCandidateInsights function.
+ * - GenerateCandidateInsightsInput - The input type for the generateCandidateinsights function.
  * - GenerateCandidateInsightsOutput - The return type for the generateCandidateInsights function.
  */
 
@@ -29,9 +29,15 @@ const GenerateCandidateInsightsInputSchema = z.object({
 });
 export type GenerateCandidateInsightsInput = z.infer<typeof GenerateCandidateInsightsInputSchema>;
 
+// This is the schema for the prompt itself, which takes strings.
+const PromptInputSchema = GenerateCandidateInsightsInputSchema.extend({
+    testResultsStr: z.string(),
+    cvSignalsStr: z.string(),
+});
+
 const GenerateCandidateInsightsOutputSchema = z.object({
-  keyStrengths: z.string().describe('A summary of the candidate\'s key strengths.'),
-  keyRisks: z.string().describe('A summary of the candidate\'s key risks or areas of concern.'),
+  keyStrengths: z.string().describe("A summary of the candidate's key strengths."),
+  keyRisks: z.string().describe("A summary of the candidate's key risks or areas of concern."),
 });
 export type GenerateCandidateInsightsOutput = z.infer<typeof GenerateCandidateInsightsOutputSchema>;
 
@@ -41,7 +47,7 @@ export async function generateCandidateInsights(input: GenerateCandidateInsights
 
 const prompt = ai.definePrompt({
   name: 'generateCandidateInsightsPrompt',
-  input: {schema: GenerateCandidateInsightsInputSchema},
+  input: {schema: PromptInputSchema},
   output: {schema: GenerateCandidateInsightsOutputSchema},
   prompt: `You are an AI assistant specializing in candidate evaluation for recruitment.
   Based on the provided data, generate a summary of the candidate's key strengths and potential risks.
@@ -54,8 +60,8 @@ const prompt = ai.definePrompt({
   Integrity & Risk: {{{integrityRisk}}}
   Final Score: {{{finalScore}}}
   UPS Percentile: {{{UPSErrorcentile}}}
-  Test Results: {{JSON.stringify testResults}}
-  CV Signals: {{#if cvSignals}}{{JSON.stringify cvSignals}}{{else}}No CV signals provided.{{/if}}
+  Test Results: {{{testResultsStr}}}
+  CV Signals: {{{cvSignalsStr}}}
 
   Key Strengths:
   Key Risks:`, // Ensure newlines at end
@@ -68,7 +74,17 @@ const generateCandidateInsightsFlow = ai.defineFlow(
     outputSchema: GenerateCandidateInsightsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    // Convert complex objects to JSON strings before passing to the prompt.
+    const testResultsStr = JSON.stringify(input.testResults);
+    const cvSignalsStr = input.cvSignals ? JSON.stringify(input.cvSignals) : 'No CV signals provided.';
+
+    const promptInput = {
+        ...input,
+        testResultsStr,
+        cvSignalsStr,
+    };
+      
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );
