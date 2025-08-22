@@ -284,7 +284,7 @@ export default function Analyzer() {
                           </Tooltip>
                       </CardHeader>
                       <CardContent className="space-y-8">
-                          <div className="space-y-2">
+                          <div className="space-y-4">
                              <Label className="text-base font-semibold">Job Description <span className="text-destructive">*</span></Label>
                              <p className="text-sm text-muted-foreground">Paste the job description text below to generate skill weights.</p>
                              <div className="space-y-2">
