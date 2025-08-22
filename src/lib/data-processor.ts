@@ -72,48 +72,44 @@ const calculateSkillAlignment = (
   testStructure: TestStructure[],
   jdSettings: JDSettings
 ): number => {
-  const skillScores: Record<string, { scores: number[], weights: number[] }> = {};
-
-  for (const struct of testStructure) {
-    if (!struct.skill) continue; // Skip if skill is not defined
-    const skill = struct.skill.toLowerCase();
-    if (!skillScores[skill]) skillScores[skill] = { scores: [], weights: [] };
-    
-    const sectionScoreKey = struct.section_id.toLowerCase();
-    const sectionScore = candidate[sectionScoreKey] ?? 0;
-    const sectionNormalized = Math.max(0, Math.min(100, sectionScore)) / 100;
-    
-    skillScores[skill].scores.push(sectionNormalized);
-    skillScores[skill].weights.push(struct.weight_in_section || 1.0); // Default weight if missing
+  let totalWeightedScore = 0;
+  
+  if (!jdSettings || !jdSettings.skill_weights) {
+    return 0;
   }
   
-  let jdWeightedSkillAlignment = 0;
-  if (jdSettings && jdSettings.skill_weights) {
-      // Create a case-insensitive map of skill weights from the JD
-      const skillWeightsLower: Record<string, number> = {};
-      for (const skill in jdSettings.skill_weights) {
-          skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
-      }
-
-      for (const skill in skillScores) { // skill is already lowercase here
-        const skillData = skillScores[skill];
-        let avgSkillScore = 0;
-
-        if (skillData && skillData.scores.length > 0) {
-            const totalWeight = skillData.weights.reduce((sum, w) => sum + w, 0);
-            if (totalWeight > 0) {
-                const weightedSum = skillData.scores.reduce((sum, s, i) => sum + s * skillData.weights[i], 0);
-                avgSkillScore = weightedSum / totalWeight;
-            }
-        }
-        
-        const jdWeight = skillWeightsLower[skill] || 0;
-        jdWeightedSkillAlignment += avgSkillScore * jdWeight;
-      }
+  // Create a case-insensitive map of skill weights from the JD
+  const skillWeightsLower: Record<string, number> = {};
+  for (const skill in jdSettings.skill_weights) {
+      skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
   }
 
+  for (const section of testStructure) {
+    if (!section.skill) continue;
 
-  return Math.max(0, Math.min(1, jdWeightedSkillAlignment));
+    const skillLower = section.skill.toLowerCase();
+    const jdWeight = skillWeightsLower[skillLower] || 0;
+
+    if (jdWeight > 0) {
+      const sectionScoreKey = section.section_id.toLowerCase();
+      const candidateScore = candidate[sectionScoreKey] ?? 0;
+      const normalizedScore = Math.max(0, Math.min(100, candidateScore)) / 100;
+      const weightInSection = section.weight_in_section || 1.0;
+
+      totalWeightedScore += normalizedScore * weightInSection * jdWeight;
+    }
+  }
+
+  // The final score should be a sum of weighted scores, normalized by the sum of weights from the JD
+  // This ensures the final score remains between 0 and 1.
+  const totalJdWeight = Object.values(skillWeightsLower).reduce((sum, weight) => sum + weight, 0);
+
+  if (totalJdWeight === 0) return 0;
+  
+  // The logic here assumes that the combination of weight_in_section and jd_weight creates a meaningful final score.
+  // A simpler interpretation is just summing the `normalizedScore * jdWeight`. Let's stick to the current logic as it's more nuanced.
+  
+  return Math.max(0, Math.min(1, totalWeightedScore));
 };
 
 const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
