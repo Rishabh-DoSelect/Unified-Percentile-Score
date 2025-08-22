@@ -1,9 +1,10 @@
 """QB Dump of assessments"""
 
 import re
+import json
 from django.utils.html import strip_tags
 from unidecode import unidecode
-from nucleus.models import SolutionHistory, Test
+# from nucleus.models import SolutionHistory, Test
 
 
 REPLACE_CHAR = {
@@ -33,25 +34,27 @@ def run(test_slug):
     test = Test.objects.get(slug=test_slug)
     data = []
     # for test_solution_set in TestSolutionSet.objects.filter()
-    for solution in SolutionHistory.objects.get(test=test, is_submitted=True).iterator():
+    for solution in SolutionHistory.objects.filter(test=test, is_submitted=True).iterator():
         tss = solution.test_solution_set
         report = tss.report_recruiter_history
+        # if report.score >= 38:
         record = {
-            "solution_slug": solution.slug,
-            "problem_slug": solution.problem.slug,
+            # "solution_slug": solution.slug,
+            # "problem_slug": solution.problem.slug,
             "problem_name" : solution.problem.name,
             "code": solution.code if solution.solution_type in ['SCR', 'UIX', 'DBA', 'DSC'] else '',
             "run_details": solution.run_details,
-            "analysis_details": solution.analysis_details,
+            # "analysis_details": solution.analysis_details,
             "jupyter_data": solution.datascience_jupyter_data,
             "email": solution.creator.email,
             "full_name": solution.creator.get_full_name(),
             "mcq_choice": solution.choice,
-            "plagiarism": tss.settings,
+            "plagiarism": tss.settings.get('plagiarism'),
             "proctor_verdict": report.proctor_data.get('verdict_result').capitalize(),
-            "problem_wise_duration": report.proctor_data.get('problem_wise_duration', {})            
+            # "problem_wise_duration": report.proctor_data.get('problem_wise_duration', {})            
         }
 
         data.append(record)
 
-    return data
+    with open("/tmp/solution_dump.json", 'w') as file:
+        file.write(json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8'))

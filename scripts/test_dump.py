@@ -1,11 +1,14 @@
 """QB Dump of assessments"""
 
-import re
+import re, json
 from datetime import datetime
 from django.utils.html import strip_tags
 import tablib
 from unidecode import unidecode
 from nucleus.models import Problem, Test
+from nucleus.models.choices import PROBLEM_TYPES
+
+problem_types = dict(PROBLEM_TYPES)
 
 
 REPLACE_CHAR = {
@@ -91,6 +94,7 @@ def run(test_slug):
             "problem_decription": prepare_description(problem),
             "correct_answer" : problem.mcq_options_correct,
             "level": problem.level,
+            "problem_type": problem_types.get(problem.problem_type),
             "problem_score": problem.score,
             "penalty": problem.penalty,
             "tags": prepare_tags(problem.tags.all()),
@@ -103,4 +107,5 @@ def run(test_slug):
 
         data.append(record)
 
-    return data
+    with open("/tmp/test_dump.json", 'w') as file:
+        file.write(json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8'))
