@@ -87,9 +87,14 @@ const calculateSkillAlignment = (
   
   let jdWeightedSkillAlignment = 0;
   if (jdSettings && jdSettings.skill_weights) {
+      // Create a case-insensitive map of skill weights
+      const skillWeightsLower: Record<string, number> = {};
       for (const skill in jdSettings.skill_weights) {
-        const skillKey = skill.toLowerCase();
-        const skillData = skillScores[skillKey];
+          skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
+      }
+
+      for (const skill in skillScores) { // skill is already lowercase here
+        const skillData = skillScores[skill];
         let avgSkillScore = 0;
 
         if (skillData && skillData.scores.length > 0) {
@@ -100,7 +105,9 @@ const calculateSkillAlignment = (
             }
         }
         
-        jdWeightedSkillAlignment += avgSkillScore * (jdSettings.skill_weights[skill] || 0);
+        // Use the case-insensitive map for lookup
+        const jdWeight = skillWeightsLower[skill] || 0;
+        jdWeightedSkillAlignment += avgSkillScore * jdWeight;
       }
   }
 
