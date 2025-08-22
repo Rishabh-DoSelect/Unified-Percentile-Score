@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dashboard } from '@/components/dashboard';
-import type { FullReport, Rubric } from '@/lib/types';
-import { processCandidateData } from '@/lib/data-processor';
-import { getAIInsights, getCvSignals } from '@/app/actions';
-import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal } from 'lucide-react';
+import type { FullReport, Rubric, TestStructure } from '@/lib/types';
+import { parseCsv, processCandidateData } from '@/lib/data-processor';
+import { generateJdFromText, getAIInsights, getCvSignals } from '@/app/actions';
+import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal, Wand2 } from 'lucide-react';
 import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
 import { Slider } from '@/components/ui/slider';
@@ -29,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
 
 
 interface FileState {
@@ -63,12 +64,16 @@ export default function Analyzer() {
     candidates: '',
   });
 
+  const [jdText, setJdText] = useState('');
+  const [role, setRole] = useState('');
+  const [isGeneratingJd, setIsGeneratingJd] = useState(false);
+
   const [rubricWeights, setRubricWeights] = useState(initialWeights);
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<FullReport | null>(null);
   const { toast } = useToast();
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: keyof FileState) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: keyof Omit<FileState, 'jd'>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -79,6 +84,38 @@ export default function Analyzer() {
       reader.readAsText(file);
     }
   };
+
+  const handleGenerateJd = async () => {
+    if (!fileContents.structure) {
+        toast({ variant: 'destructive', title: 'Missing Test Structure', description: 'Please upload the test structure CSV first to extract skills.' });
+        return;
+    }
+    if (!jdText.trim()) {
+        toast({ variant: 'destructive', title: 'Missing Job Description', description: 'Please paste the job description text.' });
+        return;
+    }
+    if (!role.trim()) {
+        toast({ variant: 'destructive', title: 'Missing Role', description: 'Please enter the role title.' });
+        return;
+    }
+
+    setIsGeneratingJd(true);
+    try {
+        const testStructure = parseCsv<TestStructure>(fileContents.structure);
+        const skills = [...new Set(testStructure.map(s => s.skill))];
+        
+        const generatedYaml = await generateJdFromText({ jobDescription: jdText, skills }, role);
+        
+        setFileContents(prev => ({...prev, jd: generatedYaml}));
+        setFileNames(prev => ({...prev, jd: 'jd-generated.yaml'}));
+        toast({ title: 'Success!', description: 'JD Skill Weights have been generated and loaded.' });
+    } catch (error) {
+        console.error('Error generating JD:', error);
+        toast({ variant: 'destructive', title: 'Generation Failed', description: 'Could not generate JD weights from the provided text.' });
+    } finally {
+        setIsGeneratingJd(false);
+    }
+  }
 
   const handleWeightChange = (category: keyof typeof rubricWeights, value: number) => {
     const otherCategoriesTotal = Object.entries(rubricWeights)
@@ -174,10 +211,12 @@ export default function Analyzer() {
     setReport(null);
     setFileContents({ jd: null, structure: null, candidates: null });
     setFileNames({ jd: '', structure: '', candidates: ''});
+    setJdText('');
+    setRole('');
     setRubricWeights(initialWeights);
   }
 
-  const FileInput = ({ id, label, description, isOptional = false, fileName }: { id: keyof FileState, label: string, description: string, isOptional?: boolean, fileName: string }) => (
+  const FileInput = ({ id, label, description, isOptional = false, fileName }: { id: keyof Omit<FileState, 'jd'>, label: string, description: string, isOptional?: boolean, fileName: string }) => (
     <div className="space-y-2">
       <Label htmlFor={id} className="text-base font-semibold">{label} {!isOptional && <span className="text-destructive">*</span>}</Label>
       <p className="text-sm text-muted-foreground">{description}</p>
@@ -245,7 +284,27 @@ export default function Analyzer() {
                           </Tooltip>
                       </CardHeader>
                       <CardContent className="space-y-8">
-                          <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
+                          <div className="space-y-2">
+                             <Label className="text-base font-semibold">Job Description <span className="text-destructive">*</span></Label>
+                             <p className="text-sm text-muted-foreground">Paste the job description text below to generate skill weights.</p>
+                             <div className="space-y-2">
+                                <Label htmlFor="role-title">Role Title</Label>
+                                <Input id="role-title" placeholder="e.g., Senior Data Scientist" value={role} onChange={(e) => setRole(e.target.value)} />
+                             </div>
+                             <Textarea 
+                                placeholder="Paste the full job description here..." 
+                                value={jdText} 
+                                onChange={(e) => setJdText(e.target.value)}
+                                className="min-h-[150px]"
+                             />
+                              <div className="flex items-center justify-between">
+                                <Button onClick={handleGenerateJd} disabled={isGeneratingJd}>
+                                    {isGeneratingJd ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                    Generate Skill Weights
+                                </Button>
+                                {fileNames.jd && <div className="text-sm text-muted-foreground flex items-center gap-2"><FileCheck2 className="h-4 w-4 text-green-600" /> {fileNames.jd}</div>}
+                              </div>
+                          </div>
                           <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
                           <FileInput id="candidates" label="Candidate Results" description="CSV with scores and (optionally) a 'resume' column containing the full text of the candidate's CV." fileName={fileNames.candidates} />
                       </CardContent>
