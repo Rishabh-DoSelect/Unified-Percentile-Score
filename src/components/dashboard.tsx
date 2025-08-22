@@ -14,11 +14,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { CandidateDetail } from './candidate-detail';
-import { ArrowUpDown, BarChart, Star, Users } from 'lucide-react';
+import { ArrowUpDown, BarChart, FilePlus2, Star, Users } from 'lucide-react';
 
 type SortKey = keyof Pick<RankedCandidate, 'rank' | 'name' | 'UPS_percentile' | 'final_score'>;
 
-export function Dashboard({ report }: { report: FullReport }) {
+interface DashboardProps {
+    report: FullReport;
+    onNewReport: () => void;
+}
+
+export function Dashboard({ report, onNewReport }: DashboardProps) {
   const [selectedCandidate, setSelectedCandidate] = useState<RankedCandidate | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('rank');
@@ -47,7 +52,7 @@ export function Dashboard({ report }: { report: FullReport }) {
     }
 
     if (typeof compareA === 'number' && typeof compareB === 'number') {
-        return sortDirection === 'asc' ? compareA - compareB : compareB - a;
+        return sortDirection === 'asc' ? compareA - compareB : compareB - a[sortKey];
     }
     return 0;
   });
@@ -64,11 +69,17 @@ export function Dashboard({ report }: { report: FullReport }) {
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Executive Report</h2>
-        <p className="text-muted-foreground">
-          Analysis for role: <span className="font-semibold text-foreground">{report.role}</span>
-        </p>
+      <div className="flex justify-between items-start">
+        <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight">Executive Report</h2>
+            <p className="text-muted-foreground">
+            Analysis for role: <span className="font-semibold text-foreground">{report.role}</span>
+            </p>
+        </div>
+        <Button onClick={onNewReport} variant="outline">
+            <FilePlus2 className="mr-2 h-4 w-4" />
+            New Report
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -120,6 +131,9 @@ export function Dashboard({ report }: { report: FullReport }) {
                 <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
                   <div className="flex items-center gap-2">Name <ArrowUpDown className="h-4 w-4" /></div>
                 </TableHead>
+                 <TableHead className="text-right cursor-pointer" onClick={() => handleSort('final_score')}>
+                    <div className="flex items-center justify-end gap-2">Final Score <ArrowUpDown className="h-4 w-4" /></div>
+                </TableHead>
                 <TableHead className="text-right cursor-pointer" onClick={() => handleSort('UPS_percentile')}>
                     <div className="flex items-center justify-end gap-2">UPS Percentile <ArrowUpDown className="h-4 w-4" /></div>
                 </TableHead>
@@ -132,7 +146,8 @@ export function Dashboard({ report }: { report: FullReport }) {
                 <TableRow key={candidate.candidate_id}>
                   <TableCell className="font-medium">{candidate.rank}</TableCell>
                   <TableCell>{candidate.name}</TableCell>
-                  <TableCell className="text-right">{candidate.UPS_percentile.toFixed(2)}</TableCell>
+                   <TableCell className="text-right font-mono">{(candidate.final_score * 100).toFixed(1)}%</TableCell>
+                  <TableCell className="text-right font-mono">{candidate.UPS_percentile.toFixed(1)}%</TableCell>
                   <TableCell>
                     <Badge variant={recommendationVariant[candidate.recommendation]}>
                       {candidate.recommendation}

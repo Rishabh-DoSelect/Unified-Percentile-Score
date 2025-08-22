@@ -7,16 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dashboard } from '@/components/dashboard';
-import type { FullReport } from '@/lib/types';
+import type { FullReport, Rubric } from '@/lib/types';
 import { processCandidateData } from '@/lib/data-processor';
 import { getAIInsights } from '@/app/actions';
-import { FileCheck2, FileText, Loader2, Upload } from 'lucide-react';
+import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal } from 'lucide-react';
 import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
+import { Slider } from '@/components/ui/slider';
 
 interface FileState {
   jd: string | null;
-  rubric: string | null;
   structure: string | null;
   candidates: string | null;
   cv: string | null;
@@ -24,32 +24,38 @@ interface FileState {
 
 interface FileNameState {
   jd: string;
-  rubric: string;
   structure: string;
   candidates: string;
   cv: string;
 }
 
+const initialWeights = {
+  skill_alignment: 40,
+  knowledge_evidence: 20,
+  problem_solving: 20,
+  efficiency_consistency: 10,
+  integrity_risk: 10,
+};
+
 export default function Analyzer() {
   const [fileContents, setFileContents] = useState<FileState>({
     jd: null,
-    rubric: null,
     structure: null,
     candidates: null,
     cv: null,
   });
   const [fileNames, setFileNames] = useState<FileNameState>({
     jd: '',
-    rubric: '',
     structure: '',
     candidates: '',
     cv: '',
   });
 
+  const [rubricWeights, setRubricWeights] = useState(initialWeights);
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<FullReport | null>(null);
   const { toast } = useToast();
-
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: keyof FileState) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -62,7 +68,39 @@ export default function Analyzer() {
     }
   };
 
-  const allRequiredFilesUploaded = fileContents.jd && fileContents.rubric && fileContents.structure && fileContents.candidates;
+  const handleWeightChange = (category: keyof typeof rubricWeights, value: number) => {
+    const otherCategoriesTotal = Object.entries(rubricWeights)
+      .filter(([key]) => key !== category)
+      .reduce((sum, [, val]) => sum + val, 0);
+
+    const newWeights = { ...rubricWeights, [category]: value };
+
+    if (otherCategoriesTotal + value > 100) {
+      const overflow = (otherCategoriesTotal + value) - 100;
+      let remainingTotal = otherCategoriesTotal;
+      
+      for (const key in newWeights) {
+        if (key !== category) {
+          const proportion = rubricWeights[key as keyof typeof rubricWeights] / remainingTotal;
+          newWeights[key as keyof typeof rubricWeights] -= Math.round(overflow * proportion);
+        }
+      }
+    }
+    
+    // Final check to ensure total is exactly 100
+    const finalTotal = Object.values(newWeights).reduce((sum, val) => sum + val, 0);
+    if (finalTotal !== 100) {
+      const diff = 100 - finalTotal;
+      const primaryCat = category as keyof typeof rubricWeights;
+      if(newWeights[primaryCat] + diff >= 0){
+          newWeights[primaryCat] += diff;
+      }
+    }
+
+    setRubricWeights(newWeights);
+  };
+  
+  const allRequiredFilesUploaded = fileContents.jd && fileContents.structure && fileContents.candidates;
 
   const handleGenerateReport = async () => {
     if (!allRequiredFilesUploaded) {
@@ -77,10 +115,25 @@ export default function Analyzer() {
     setIsLoading(true);
     setReport(null);
 
+    const rubric: Rubric = {
+      rubric_weights: {
+        skill_alignment: rubricWeights.skill_alignment / 100,
+        knowledge_evidence: rubricWeights.knowledge_evidence / 100,
+        problem_solving: rubricWeights.problem_solving / 100,
+        efficiency_consistency: rubricWeights.efficiency_consistency / 100,
+        integrity_risk: rubricWeights.integrity_risk / 100,
+      },
+      thresholds: {
+        strong_hire_percentile_min: 85,
+        conditional_percentile_min: 60,
+        red_flag_integrity_max: 0.8
+      }
+    };
+
     try {
       const fullReport = await processCandidateData(
         fileContents.jd!,
-        fileContents.rubric!,
+        rubric,
         fileContents.structure!,
         fileContents.candidates!,
         fileContents.cv,
@@ -104,6 +157,13 @@ export default function Analyzer() {
     }
   };
 
+  const handleNewReport = () => {
+    setReport(null);
+    setFileContents({ jd: null, structure: null, candidates: null, cv: null });
+    setFileNames({ jd: '', structure: '', candidates: '', cv: ''});
+    setRubricWeights(initialWeights);
+  }
+
   const FileInput = ({ id, label, description, isOptional = false, fileName }: { id: keyof FileState, label: string, description: string, isOptional?: boolean, fileName: string }) => (
     <div className="space-y-2">
       <Label htmlFor={id} className="text-base font-semibold">{label} {!isOptional && <span className="text-destructive">*</span>}</Label>
@@ -121,48 +181,87 @@ export default function Analyzer() {
     </div>
   );
 
+  const RubricSlider = ({ label, category }: { label: string; category: keyof typeof rubricWeights; }) => (
+    <div className='space-y-2'>
+        <div className='flex justify-between items-center'>
+            <Label htmlFor={category}>{label}</Label>
+            <span className='text-sm font-medium text-primary'>{rubricWeights[category]}%</span>
+        </div>
+        <Slider
+            id={category}
+            value={[rubricWeights[category]]}
+            onValueChange={([value]) => handleWeightChange(category, value)}
+            max={100}
+            step={5}
+        />
+    </div>
+  )
+
+  const totalWeight = Object.values(rubricWeights).reduce((sum, value) => sum + value, 0);
+
+  if (report) {
+    return <Dashboard report={report} onNewReport={handleNewReport} />
+  }
+
   return (
     <div className="min-h-screen bg-secondary/50">
         <Header />
         <main>
-            {!report ? (
-                <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 max-w-4xl">
-                    <Card className="shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="text-2xl flex items-center gap-2"><FileText /> Upload Your Data</CardTitle>
-                        <CardDescription>
-                        Provide configuration and candidate data files to generate your AI-powered report.
-                        Required fields are marked with an asterisk (*).
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
-                            <FileInput id="rubric" label="Rubric Weights" description="YAML file defining scoring rubric and thresholds." fileName={fileNames.rubric} />
-                            <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
-                            <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and signals." fileName={fileNames.candidates} />
-                        </div>
-                        <FileInput id="cv" label="CV Signals (Optional)" description="Optional CSV with candidate CV data." isOptional fileName={fileNames.cv} />
-                        
-                        <Button onClick={handleGenerateReport} disabled={!allRequiredFilesUploaded || isLoading} className="w-full text-lg py-6">
-                        {isLoading ? (
-                            <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Generating Report...
-                            </>
-                        ) : (
-                            'Generate Report'
-                        )}
-                        </Button>
-                    </CardContent>
+            <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 max-w-4xl">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <Card className="shadow-lg h-full">
+                      <CardHeader>
+                          <CardTitle className="text-2xl flex items-center gap-2"><FileText /> Upload Your Data</CardTitle>
+                          <CardDescription>
+                          Provide JD, test structure, and candidate data. Required fields are marked with an asterisk (*).
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-8">
+                          <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
+                          <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
+                          <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and signals." fileName={fileNames.candidates} />
+                          <FileInput id="cv" label="CV Signals (Optional)" description="Optional CSV with candidate CV data." isOptional fileName={fileNames.cv} />
+                      </CardContent>
                     </Card>
-                    <div className='mt-8'>
-                        <SampleData />
-                    </div>
+                  </div>
+                  <div>
+                    <Card className="shadow-lg h-full">
+                      <CardHeader>
+                        <CardTitle className="text-2xl flex items-center gap-2"><SlidersHorizontal /> Customize Rubric Weights</CardTitle>
+                        <CardDescription>
+                          Adjust the scoring weights. The total must be 100%.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <RubricSlider label="Skill Alignment" category="skill_alignment" />
+                        <RubricSlider label="Knowledge Evidence" category="knowledge_evidence" />
+                        <RubricSlider label="Problem Solving" category="problem_solving" />
+                        <RubricSlider label="Efficiency & Consistency" category="efficiency_consistency" />
+                        <RubricSlider label="Integrity & Risk" category="integrity_risk" />
+                        <div className={`text-right font-bold ${totalWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                            Total: {totalWeight}%
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-            ) : (
-                <Dashboard report={report} />
-            )}
+                
+                <Button onClick={handleGenerateReport} disabled={!allRequiredFilesUploaded || isLoading || totalWeight !== 100} className="w-full text-lg py-6 mt-8">
+                {isLoading ? (
+                    <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Generating Report...
+                    </>
+                ) : (
+                    'Generate Report'
+                )}
+                </Button>
+
+                <div className='mt-8'>
+                    <SampleData />
+                </div>
+            </div>
         </main>
     </div>
   );

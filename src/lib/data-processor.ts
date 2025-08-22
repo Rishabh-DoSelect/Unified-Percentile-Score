@@ -18,26 +18,31 @@ import type {
 // --- UTILITY FUNCTIONS ---
 const mean = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 const stddev = (arr: number[]) => {
-  if (arr.length === 0) return 0;
+  if (arr.length < 2) return 0;
   const arrMean = mean(arr);
-  return Math.sqrt(mean(arr.map(n => (n - arrMean) ** 2)));
+  const sumOfSquares = arr.map(n => (n - arrMean) ** 2).reduce((a,b) => a + b, 0);
+  return Math.sqrt(sumOfSquares / (arr.length - 1));
 };
 const parseTimeTaken = (time: string | number): number => {
     if (typeof time === 'number') return time;
-    if (typeof time !== 'string') return 0;
+    if (typeof time !== 'string' || !time) return 0;
     
     let totalSeconds = 0;
-    const parts = time.split(' ');
+    const timeLower = time.toLowerCase();
+    
+    const hoursMatch = timeLower.match(/(\d+)\s*h/);
+    if (hoursMatch) totalSeconds += parseInt(hoursMatch[1]) * 3600;
 
-    parts.forEach(part => {
-        if (part.includes('h')) {
-            totalSeconds += parseInt(part.replace('h', '')) * 3600;
-        } else if (part.includes('m')) {
-            totalSeconds += parseInt(part.replace('m', '')) * 60;
-        } else if (part.includes('s')) {
-            totalSeconds += parseInt(part.replace('s', ''));
-        }
-    });
+    const minutesMatch = timeLower.match(/(\d+)\s*m/);
+    if (minutesMatch) totalSeconds += parseInt(minutesMatch[1]) * 60;
+    
+    const secondsMatch = timeLower.match(/(\d+)\s*s/);
+    if (secondsMatch) totalSeconds += parseInt(secondsMatch[1]);
+    
+    // If no units, assume it's seconds
+    if (!hoursMatch && !minutesMatch && !secondsMatch && /^\d+$/.test(time)) {
+        return parseInt(time);
+    }
 
     return totalSeconds;
 };
@@ -45,10 +50,17 @@ const parseTimeTaken = (time: string | number): number => {
 
 // --- PARSING & VALIDATION ---
 export const parseYaml = <T>(content: string): T => yaml.load(content) as T;
-export const parseCsv = <T>(content: string): T[] => {
-  const result = Papa.parse<T>(content, { header: true, skipEmptyLines: true, dynamicTyping: true });
+export const parseCsv = <T>(content:string): T[] => {
+  const result = Papa.parse<T>(content, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+    transformHeader: header => header.toLowerCase().replace(/\s+/g, '_'),
+  });
   if (result.errors.length) {
     console.warn('CSV Parsing Errors:', result.errors);
+    // Optionally throw an error for critical parsing failures
+    // throw new Error(`CSV parsing failed: ${result.errors[0].message}`);
   }
   return result.data;
 };
@@ -60,19 +72,33 @@ const calculateSkillAlignment = (
   testStructure: TestStructure[],
   jdSettings: JDSettings
 ): number => {
-  const sectionIds = testStructure.map(s => s.section_id);
-  const skillScores: Record<string, number[]> = {};
+  const skillScores: Record<string, { scores: number[], weights: number[] }> = {};
 
   for (const struct of testStructure) {
-    if (!skillScores[struct.skill]) skillScores[struct.skill] = [];
-    const sectionScore = candidate[struct.section_id] ?? 0;
+    const skill = struct.skill.toLowerCase();
+    if (!skillScores[skill]) skillScores[skill] = { scores: [], weights: [] };
+    
+    const sectionScore = candidate[struct.section_id.toLowerCase()] ?? 0;
     const sectionNormalized = Math.max(0, Math.min(100, sectionScore)) / 100;
-    skillScores[struct.skill].push(sectionNormalized * struct.weight_in_section);
+    
+    skillScores[skill].scores.push(sectionNormalized);
+    skillScores[skill].weights.push(struct.weight_in_section);
   }
   
   let jdWeightedSkillAlignment = 0;
   for (const skill in jdSettings.skill_weights) {
-    const avgSkillScore = skillScores[skill] ? mean(skillScores[skill]) : 0;
+    const skillKey = skill.toLowerCase();
+    const skillData = skillScores[skillKey];
+    let avgSkillScore = 0;
+
+    if (skillData && skillData.scores.length > 0) {
+        const totalWeight = skillData.weights.reduce((sum, w) => sum + w, 0);
+        if (totalWeight > 0) {
+            const weightedSum = skillData.scores.reduce((sum, s, i) => sum + s * skillData.weights[i], 0);
+            avgSkillScore = weightedSum / totalWeight;
+        }
+    }
+    
     jdWeightedSkillAlignment += avgSkillScore * (jdSettings.skill_weights[skill] || 0);
   }
 
@@ -80,14 +106,15 @@ const calculateSkillAlignment = (
 };
 
 const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
-  if (!cv) return 0.5;
+  if (!cv) return 0.5; // Neutral score if no CV data
 
-  const keywordDict = ["python", "pandas", "numpy", "scikit-learn", "ml", "django", "sql"];
-  const projectsScore = Math.min(cv.projects, 3) / 3;
-  const internshipsScore = Math.min(cv.internships, 2) / 2;
+  const keywordDict = ["python", "pandas", "numpy", "scikit-learn", "ml", "django", "sql", "tensorflow", "pytorch", "aws", "gcp", "azure"];
+  const projectsScore = Math.min(cv.projects || 0, 3) / 3;
+  const internshipsScore = Math.min(cv.internships || 0, 2) / 2;
   const githubScore = cv.github ? 1 : 0;
   
-  const matchedKeywords = cv.keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => keywordDict.includes(k)).length;
+  const keywords = (cv.keywords || "").split(',').map(k => k.trim().toLowerCase());
+  const matchedKeywords = keywords.filter(k => keywordDict.includes(k)).length;
   const keywordsScore = Math.min(matchedKeywords, 6) / 6;
 
   const score = 0.35 * projectsScore + 0.25 * internshipsScore + 0.20 * githubScore + 0.20 * keywordsScore;
@@ -95,9 +122,9 @@ const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
 };
 
 const calculateProblemSolving = (candidate: Candidate, testStructure: TestStructure[]): number => {
-  const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id] ?? 0) / 100);
+  const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id.toLowerCase()] ?? 0) / 100);
   const balanceScore = 1 - stddev(sectionScoresNormalized);
-  const persistenceScore = 1 - (Math.min(candidate.attempts, 8) / 8); // Invert as lower attempts are better.
+  const persistenceScore = 1 - (Math.min(candidate.attempts || 1, 8) / 8); 
   
   const score = 0.6 * balanceScore + 0.4 * persistenceScore;
   return Math.max(0, Math.min(1, score));
@@ -108,12 +135,16 @@ const calculateEfficiencyConsistency = (
   allCandidates: Candidate[],
   testStructure: TestStructure[],
 ): number => {
-  const allTimes = allCandidates.map(c => c.total_time_sec).sort((a, b) => a - b);
-  const timeRank = allTimes.indexOf(candidate.total_time_sec) + 1;
-  const timePercentile = allTimes.length > 0 ? timeRank / allTimes.length : 0;
-  const speedScore = 1 - timePercentile;
+  const allTimes = allCandidates.map(c => c.total_time_sec).filter(t => t > 0).sort((a, b) => a - b);
+  const candidateTime = candidate.total_time_sec;
+  let speedScore = 0.5; // Default score if no time data
+  if (allTimes.length > 0 && candidateTime > 0) {
+      const rank = allTimes.indexOf(candidateTime) + 1;
+      const percentile = rank / allTimes.length;
+      speedScore = 1 - percentile;
+  }
 
-  const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id] ?? 0) / 100);
+  const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id.toLowerCase()] ?? 0) / 100);
   const consistencyScore = 1 - stddev(sectionScoresNormalized);
 
   const score = 0.6 * speedScore + 0.4 * consistencyScore;
@@ -121,14 +152,14 @@ const calculateEfficiencyConsistency = (
 };
 
 const calculateIntegrityRisk = (candidate: Candidate): number => {
-  const plagiarismPenalty = candidate.plagiarism_score;
-  const proctorPenalty = Math.min(candidate.proctoring_flags, 5) / 5;
+  const plagiarismPenalty = candidate.plagiarism_score || 0;
+  const proctorPenalty = Math.min(candidate.proctoring_flags || 0, 5) / 5;
   
   const risk = 0.7 * plagiarismPenalty + 0.3 * proctorPenalty;
-  return 1 - Math.max(0, Math.min(1, risk));
+  return 1 - Math.max(0, Math.min(1, risk)); // Invert risk to get score
 };
 
-const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'>, rubric: Rubric): number => {
+const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'|'candidate_id'>, rubric: Rubric): number => {
   const weights = rubric.rubric_weights;
   const final =
     scores.skill_alignment * weights.skill_alignment +
@@ -139,49 +170,38 @@ const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'>
   return Math.max(0, Math.min(1, final));
 };
 
-const rankAndPercentile = (candidatesScores: CandidateScores[], allCandidatesRaw: Candidate[]): Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
-    const enrichedForSort = candidatesScores.map(cs => {
-        const raw = allCandidatesRaw.find(c => c.candidate_id === cs.candidate_id)!;
-        return {
-            ...cs,
-            plagiarism_score: raw.plagiarism_score,
-            total_time_sec: raw.total_time_sec,
-        };
-    });
-
-    enrichedForSort.sort((a, b) => {
+const rankAndPercentile = (candidatesScores: CandidateScores[]): Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
+    
+    const sortedCandidates = [...candidatesScores].sort((a, b) => {
+        // Primary sort: final_score DESC
         if (b.final_score !== a.final_score) return b.final_score - a.final_score;
-        if (a.plagiarism_score !== b.plagiarism_score) return a.plagiarism_score - b.plagiarism_score;
-        if (a.total_time_sec !== b.total_time_sec) return a.total_time_sec - b.total_time_sec;
+        // Tie-breaker 1: integrity_risk DESC (higher is better)
+        if (b.integrity_risk !== a.integrity_risk) return b.integrity_risk - a.integrity_risk;
+        // Tie-breaker 2: candidate_id ASC for stability
         return a.candidate_id.localeCompare(b.candidate_id);
     });
 
-    const K = enrichedForSort.length;
-    const ranks: Record<string, number> = {};
-    let dense_rank = 0;
-    let last_score = -1;
-    
-    enrichedForSort.forEach((c, i) => {
-        if(c.final_score !== last_score) {
-            dense_rank = i + 1;
-            last_score = c.final_score
-        }
-        ranks[c.candidate_id] = dense_rank;
-    });
+    const N = sortedCandidates.length;
+    if (N === 0) return [];
 
-    return enrichedForSort.map((cs) => {
-        const rank = ranks[cs.candidate_id];
-        const UPS_percentile = K > 0 ? Math.round(100 * (K - rank + 1) / K * 100) / 100 : 0;
-        return { ...cs, rank, UPS_percentile };
+    return sortedCandidates.map((candidate, index) => {
+        const rank = index + 1;
+        // Percentile formula: (N - rank + 1) / N * 100
+        const UPS_percentile = (N - rank + 1) / N * 100;
+        return {
+            ...candidate,
+            rank,
+            UPS_percentile,
+        };
     });
 };
 
-const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendation'>[], rubric: Rubric): Omit<RankedCandidate, 'key_strengths'| 'key_risks'>[] => {
+const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[], rubric: Rubric): Omit<RankedCandidate, 'key_strengths'| 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
     return rankedCandidates.map(c => {
         let recommendation: 'Strong Hire' | 'Conditional' | 'Not Recommended' = 'Not Recommended';
-        if (c.UPS_percentile >= rubric.thresholds.strong_hire_percentile_min) {
+        if (c.UPS_percentile >= rubric.thresholds.strong_hire_percentile_min && c.integrity_risk >= (1 - rubric.thresholds.red_flag_integrity_max)) {
             recommendation = 'Strong Hire';
-        } else if (c.UPS_percentile >= rubric.thresholds.conditional_percentile_min) {
+        } else if (c.UPS_percentile >= rubric.thresholds.conditional_percentile_min && c.integrity_risk >= (1 - rubric.thresholds.red_flag_integrity_max)) {
             recommendation = 'Conditional';
         }
         return { ...c, recommendation };
@@ -193,7 +213,7 @@ const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendat
 
 export async function processCandidateData(
   jdYaml: string,
-  rubricYaml: string,
+  rubric: Rubric,
   structureCsv: string,
   candidatesCsv: string,
   cvCsv: string | null,
@@ -201,57 +221,50 @@ export async function processCandidateData(
 ): Promise<FullReport> {
   // 1. Parse Inputs
   const jdSettings = parseYaml<JDSettings>(jdYaml);
-  const rubric = parseYaml<Rubric>(rubricYaml);
   const testStructure = parseCsv<TestStructure>(structureCsv);
   const rawCandidates = parseCsv<any>(candidatesCsv);
   const cvSignals = cvCsv ? parseCsv<CvSignal>(cvCsv) : null;
-
+  
+  if (!rawCandidates.length) {
+    throw new Error('Candidate CSV file is empty or could not be parsed.');
+  }
+  
   const candidates: Candidate[] = rawCandidates.map((rc, index) => ({
       ...rc,
-      candidate_id: `CAND${String(index + 1).padStart(3, '0')}`,
-      name: rc.Name,
-      total_time_sec: parseTimeTaken(rc['Time Taken']),
-      attempts: 1, // Defaulting to 1 as it's not in the new CSV
-      plagiarism_score: (typeof rc['Plagiarism Status'] === 'string' && rc['Plagiarism Status'].toLowerCase() === 'plagiarised') ? 1.0 : 0.0,
-      proctoring_flags: (typeof rc['Proctoring Verdict'] === 'string' && rc['Proctoring Verdict'].toLowerCase().includes('violation')) ? 1 : 0,
-      S1: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
-      S2: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
-      S3: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
-      S4: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
-      S5: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
-      S6: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
+      candidate_id: rc.candidate_id || `CAND${String(index + 1).padStart(3, '0')}`,
+      name: rc.name,
+      total_time_sec: parseTimeTaken(rc.time_taken),
   }));
-  
+
   // 2. Score each candidate
-  const candidateScores: Omit<CandidateScores, 'final_score'>[] = candidates.map(c => {
+  const candidateScores: CandidateScores[] = candidates.map(c => {
     const cv = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
-    return {
-      candidate_id: c.candidate_id,
-      name: c.name,
+    const scores = {
       skill_alignment: calculateSkillAlignment(c, testStructure, jdSettings),
       knowledge_evidence: calculateKnowledgeEvidence(cv),
       problem_solving: calculateProblemSolving(c, testStructure),
       efficiency_consistency: calculateEfficiencyConsistency(c, candidates, testStructure),
       integrity_risk: calculateIntegrityRisk(c),
     };
+    return {
+      candidate_id: c.candidate_id,
+      name: c.name,
+      ...scores,
+      final_score: calculateFinalScore(scores, rubric),
+    };
   });
 
-  // 3. Calculate Final Score
-  const candidatesWithFinalScores: CandidateScores[] = candidateScores.map(cs => ({
-    ...cs,
-    final_score: calculateFinalScore(cs, rubric),
-  }));
 
   // 4. Rank and get Percentile
-  const ranked = rankAndPercentile(candidatesWithFinalScores, candidates);
+  const ranked = rankAndPercentile(candidateScores);
   const withRecs = addRecommendations(ranked, rubric);
-
+  
   // 5. Generate AI Insights
   const insightsPromises = withRecs.map(c => {
     const testResults: Record<string, number> = {};
     const rawCandidate = candidates.find(rc => rc.candidate_id === c.candidate_id)!;
     testStructure.forEach(ts => {
-        testResults[ts.section_id] = rawCandidate[ts.section_id] ?? 0;
+        testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
     });
 
     const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
@@ -259,7 +272,7 @@ export async function processCandidateData(
         projects: cvData.projects,
         internships: cvData.internships,
         github: cvData.github,
-        keywords: cvData.keywords.split(',').map(k => k.trim())
+        keywords: cvData.keywords
     } : undefined;
 
     const aiInput: GenerateCandidateInsightsInput = {
