@@ -1,3 +1,4 @@
+
 export interface JDSettings {
   role: string;
   skill_weights: Record<string, number>;
@@ -32,6 +33,7 @@ export interface Candidate {
   attempts: number;
   plagiarism_score: number;
   proctoring_flags: number;
+  resume?: string; // Optional URL to the candidate's resume
   [key: string]: any; // for section scores like S1, S2, etc. and other raw columns
 }
 
@@ -39,8 +41,8 @@ export interface CvSignal {
   candidate_id: string;
   projects: number;
   internships: number;
-  github: number;
-  keywords: string;
+  github: boolean;
+  keywords: string[];
 }
 
 export interface CandidateScores {

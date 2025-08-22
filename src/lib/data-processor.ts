@@ -1,9 +1,11 @@
+
 'use client';
 
 import yaml from 'js-yaml';
 import Papa from 'papaparse';
-import type { getAIInsights } from '@/app/actions';
+import type { getAIInsights, getCvSignals } from '@/app/actions';
 import type { GenerateCandidateInsightsInput } from '@/ai/flows/generate-candidate-insights';
+import type { ParseCvOutput } from '@/ai/flows/parse-cv-flow';
 import type {
   Candidate,
   CandidateScores,
@@ -59,13 +61,11 @@ export const parseCsv = <T>(content:string): T[] => {
   });
   if (result.errors.length) {
     console.warn('CSV Parsing Errors:', result.errors);
-    // Optionally throw an error for critical parsing failures
-    // throw new Error(`CSV parsing failed: ${result.errors[0].message}`);
   }
   return result.data;
 };
 
-// --- SCORING RULES (FROM README §5) ---
+// --- SCORING RULES ---
 
 const calculateSkillAlignment = (
   candidate: Candidate,
@@ -113,8 +113,7 @@ const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
   const internshipsScore = Math.min(cv.internships || 0, 2) / 2;
   const githubScore = cv.github ? 1 : 0;
   
-  const keywords = (cv.keywords || "").split(',').map(k => k.trim().toLowerCase());
-  const matchedKeywords = keywords.filter(k => keywordDict.includes(k)).length;
+  const matchedKeywords = (cv.keywords || []).filter(k => keywordDict.includes(k.toLowerCase())).length;
   const keywordsScore = Math.min(matchedKeywords, 6) / 6;
 
   const score = 0.35 * projectsScore + 0.25 * internshipsScore + 0.20 * githubScore + 0.20 * keywordsScore;
@@ -133,7 +132,6 @@ const calculateProblemSolving = (candidate: Candidate, testStructure: TestStruct
 const calculateEfficiencyConsistency = (
   candidate: Candidate,
   allCandidates: Candidate[],
-  testStructure: TestStructure[],
 ): number => {
   const allTimes = allCandidates.map(c => c.total_time_sec).filter(t => t > 0).sort((a, b) => a - b);
   const candidateTime = candidate.total_time_sec;
@@ -144,7 +142,8 @@ const calculateEfficiencyConsistency = (
       speedScore = 1 - percentile;
   }
 
-  const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id.toLowerCase()] ?? 0) / 100);
+  const sectionIds = Object.keys(candidate).filter(key => key.startsWith('s') && !isNaN(parseInt(key.substring(1))));
+  const sectionScoresNormalized = sectionIds.map(id => (candidate[id] ?? 0) / 100);
   const consistencyScore = 1 - stddev(sectionScoresNormalized);
 
   const score = 0.6 * speedScore + 0.4 * consistencyScore;
@@ -170,14 +169,19 @@ const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'|
   return Math.max(0, Math.min(1, final));
 };
 
-const rankAndPercentile = (candidatesScores: CandidateScores[]): Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
+const rankAndPercentile = (candidatesScores: CandidateScores[], allCandidates: Candidate[]): Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
     
     const sortedCandidates = [...candidatesScores].sort((a, b) => {
+        const aTime = allCandidates.find(c => c.candidate_id === a.candidate_id)?.total_time_sec ?? Infinity;
+        const bTime = allCandidates.find(c => c.candidate_id === b.candidate_id)?.total_time_sec ?? Infinity;
+
         // Primary sort: final_score DESC
         if (b.final_score !== a.final_score) return b.final_score - a.final_score;
         // Tie-breaker 1: integrity_risk DESC (higher is better)
         if (b.integrity_risk !== a.integrity_risk) return b.integrity_risk - a.integrity_risk;
-        // Tie-breaker 2: candidate_id ASC for stability
+        // Tie-breaker 2: total_time_sec ASC (lower is better)
+        if (aTime !== bTime) return aTime - bTime;
+        // Tie-breaker 3: candidate_id ASC for stability
         return a.candidate_id.localeCompare(b.candidate_id);
     });
 
@@ -211,19 +215,36 @@ const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendat
 
 // --- MAIN PIPELINE ---
 
+// A simple (and naive) function to fetch text content from a URL.
+// Note: This will not work for all URLs due to CORS and content-type restrictions.
+// It's a placeholder for a more robust server-side fetching mechanism.
+async function fetchTextFromUrl(url: string): Promise<string> {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.text();
+    } catch (error) {
+        console.error(`Failed to fetch resume from ${url}:`, error);
+        return ''; // Return empty string on failure
+    }
+}
+
 export async function processCandidateData(
   jdYaml: string,
   rubric: Rubric,
   structureCsv: string,
   candidatesCsv: string,
-  cvCsv: string | null,
-  getAIInsightsAction: typeof getAIInsights
+  actions: {
+    getAIInsights: typeof getAIInsights;
+    getCvSignals: typeof getCvSignals;
+  }
 ): Promise<FullReport> {
   // 1. Parse Inputs
   const jdSettings = parseYaml<JDSettings>(jdYaml);
   const testStructure = parseCsv<TestStructure>(structureCsv);
   const rawCandidates = parseCsv<any>(candidatesCsv);
-  const cvSignals = cvCsv ? parseCsv<CvSignal>(cvCsv) : null;
   
   if (!rawCandidates.length) {
     throw new Error('Candidate CSV file is empty or could not be parsed.');
@@ -236,14 +257,28 @@ export async function processCandidateData(
       total_time_sec: parseTimeTaken(rc.time_taken),
   }));
 
-  // 2. Score each candidate
+  // 2. Fetch and Parse CVs
+  const cvSignalsPromises = candidates.map(async (c) => {
+    if (c.resume && typeof c.resume === 'string' && c.resume.startsWith('http')) {
+        const resumeText = await fetchTextFromUrl(c.resume);
+        if (resumeText) {
+            const signals = await actions.getCvSignals({ resumeText });
+            return { candidate_id: c.candidate_id, ...signals };
+        }
+    }
+    return { candidate_id: c.candidate_id, projects: 0, internships: 0, github: false, keywords: [] };
+  });
+
+  const cvSignals = (await Promise.all(cvSignalsPromises)) as CvSignal[];
+
+  // 3. Score each candidate
   const candidateScores: CandidateScores[] = candidates.map(c => {
     const cv = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
     const scores = {
       skill_alignment: calculateSkillAlignment(c, testStructure, jdSettings),
       knowledge_evidence: calculateKnowledgeEvidence(cv),
       problem_solving: calculateProblemSolving(c, testStructure),
-      efficiency_consistency: calculateEfficiencyConsistency(c, candidates, testStructure),
+      efficiency_consistency: calculateEfficiencyConsistency(c, candidates),
       integrity_risk: calculateIntegrityRisk(c),
     };
     return {
@@ -256,10 +291,10 @@ export async function processCandidateData(
 
 
   // 4. Rank and get Percentile
-  const ranked = rankAndPercentile(candidateScores);
+  const ranked = rankAndPercentile(candidateScores, candidates);
   const withRecs = addRecommendations(ranked, rubric);
   
-  // 5. Generate AI Insights
+  // 5. Generate AI Insights for candidate summary
   const insightsPromises = withRecs.map(c => {
     const testResults: Record<string, number> = {};
     const rawCandidate = candidates.find(rc => rc.candidate_id === c.candidate_id)!;
@@ -268,11 +303,11 @@ export async function processCandidateData(
     });
 
     const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
-    const cvSignalsForAI = cvData ? {
+     const cvSignalsForAI = cvData ? {
         projects: cvData.projects,
         internships: cvData.internships,
         github: cvData.github,
-        keywords: cvData.keywords
+        keywords: cvData.keywords.join(', ')
     } : undefined;
 
     const aiInput: GenerateCandidateInsightsInput = {
@@ -288,7 +323,7 @@ export async function processCandidateData(
         testResults,
         cvSignals: cvSignalsForAI,
     };
-    return getAIInsightsAction(aiInput);
+    return actions.getAIInsights(aiInput);
   });
 
   const aiResults = await Promise.all(insightsPromises);

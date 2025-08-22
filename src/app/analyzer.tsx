@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dashboard } from '@/components/dashboard';
 import type { FullReport, Rubric } from '@/lib/types';
 import { processCandidateData } from '@/lib/data-processor';
-import { getAIInsights } from '@/app/actions';
+import { getAIInsights, getCvSignals } from '@/app/actions';
 import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal } from 'lucide-react';
 import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
@@ -35,14 +35,12 @@ interface FileState {
   jd: string | null;
   structure: string | null;
   candidates: string | null;
-  cv: string | null;
 }
 
 interface FileNameState {
   jd: string;
   structure: string;
   candidates: string;
-  cv: string;
 }
 
 const initialWeights = {
@@ -58,13 +56,11 @@ export default function Analyzer() {
     jd: null,
     structure: null,
     candidates: null,
-    cv: null,
   });
   const [fileNames, setFileNames] = useState<FileNameState>({
     jd: '',
     structure: '',
     candidates: '',
-    cv: '',
   });
 
   const [rubricWeights, setRubricWeights] = useState(initialWeights);
@@ -154,8 +150,7 @@ export default function Analyzer() {
         rubric,
         fileContents.structure!,
         fileContents.candidates!,
-        fileContents.cv,
-        getAIInsights
+        { getAIInsights, getCvSignals }
       );
       setReport(fullReport);
       toast({
@@ -177,8 +172,8 @@ export default function Analyzer() {
 
   const handleNewReport = () => {
     setReport(null);
-    setFileContents({ jd: null, structure: null, candidates: null, cv: null });
-    setFileNames({ jd: '', structure: '', candidates: '', cv: ''});
+    setFileContents({ jd: null, structure: null, candidates: null });
+    setFileNames({ jd: '', structure: '', candidates: ''});
     setRubricWeights(initialWeights);
   }
 
@@ -252,8 +247,7 @@ export default function Analyzer() {
                       <CardContent className="space-y-8">
                           <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
                           <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
-                          <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and signals." fileName={fileNames.candidates} />
-                          <FileInput id="cv" label="CV Signals (Optional)" description="Optional CSV with candidate CV data." isOptional fileName={fileNames.cv} />
+                          <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and resume URLs." fileName={fileNames.candidates} />
                       </CardContent>
                     </Card>
                     <DialogContent>
