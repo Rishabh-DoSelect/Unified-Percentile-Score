@@ -215,19 +215,22 @@ const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendat
 
 // --- MAIN PIPELINE ---
 
-// A simple (and naive) function to fetch text content from a URL.
-// Note: This will not work for all URLs due to CORS and content-type restrictions.
-// It's a placeholder for a more robust server-side fetching mechanism.
 async function fetchTextFromUrl(url: string): Promise<string> {
     try {
+        // Use a CORS proxy if available, or fetch directly
         const response = await fetch(url);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`Failed to fetch ${url}: ${response.statusText}`);
+            return ''; // Return empty on fetch error
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && !contentType.includes('text/plain') && !contentType.includes('text/html')) {
+             console.warn(`URL ${url} returned non-text content-type: ${contentType}. Parsing may fail.`);
         }
         return await response.text();
     } catch (error) {
-        console.error(`Failed to fetch resume from ${url}:`, error);
-        return ''; // Return empty string on failure
+        console.error(`Failed to fetch or read resume from ${url}:`, error);
+        return ''; // Return empty string on any failure
     }
 }
 
@@ -262,10 +265,17 @@ export async function processCandidateData(
     if (c.resume && typeof c.resume === 'string' && c.resume.startsWith('http')) {
         const resumeText = await fetchTextFromUrl(c.resume);
         if (resumeText) {
-            const signals = await actions.getCvSignals({ resumeText });
-            return { candidate_id: c.candidate_id, ...signals };
+            try {
+                const signals = await actions.getCvSignals({ resumeText });
+                return { candidate_id: c.candidate_id, ...signals };
+            } catch (aiError) {
+                console.error(`AI CV parsing failed for ${c.candidate_id}:`, aiError);
+                 // Fallback to default if AI parsing fails
+                return { candidate_id: c.candidate_id, projects: 0, internships: 0, github: false, keywords: [] };
+            }
         }
     }
+    // Return default signals if no resume URL or if fetching fails
     return { candidate_id: c.candidate_id, projects: 0, internships: 0, github: false, keywords: [] };
   });
 

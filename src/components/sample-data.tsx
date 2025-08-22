@@ -36,8 +36,8 @@ S6,Case Study,statistics,0.5`,
     candidates: {
         name: 'candidates.csv',
         content: `candidate_id,name,time_taken,attempts,plagiarism_score,proctoring_flags,resume,S1,S2,S3,S4,S5,S6
-CAND001,Alice,"30m 0s",1,0.05,0,https://example.com/alice_resume.txt,85,90,75,88,92,80
-CAND002,Bob,"36m 40s",2,0.1,1,https://example.com/bob_resume.txt,70,80,85,75,65,72`,
+CAND001,Alice,"30m 0s",1,0.05,0,https://gist.githubusercontent.com/username/gist_id/raw/revision_id/resume.txt,85,90,75,88,92,80
+CAND002,Bob,"36m 40s",2,0.1,1,https://gist.githubusercontent.com/username/gist_id/raw/revision_id/resume.txt,70,80,85,75,65,72`,
     },
 };
 
@@ -70,10 +70,11 @@ const handleDownloadAll = async () => {
     URL.revokeObjectURL(url);
 };
 
-const SampleItem = ({ title, file }: { title: string; file: { name: string; content: string } }) => (
+const SampleItem = ({ title, file, description }: { title: string; file: { name: string; content: string }, description?: string }) => (
     <AccordionItem value={title}>
         <AccordionTrigger>{title}</AccordionTrigger>
         <AccordionContent>
+            {description && <p className="text-sm text-muted-foreground mb-2">{description}</p>}
             <div className="flex justify-end mb-2">
                 <Button variant="ghost" size="sm" onClick={() => handleDownload(file.content, file.name)}>
                     <Download className="mr-2 h-4 w-4" />
@@ -107,7 +108,11 @@ export function SampleData() {
             <Accordion type="single" collapsible className="w-full">
                 <SampleItem title="JD Skill Weights (YAML)" file={samples.jd} />
                 <SampleItem title="Test Structure (CSV)" file={samples.structure} />
-                <SampleItem title="Candidate Results (CSV)" file={samples.candidates} />
+                <SampleItem 
+                    title="Candidate Results (CSV)" 
+                    file={samples.candidates}
+                    description="The 'resume' column should contain a public URL to a plain-text resume (e.g., a public website, a .txt file, or a Google Doc published to the web). Direct links to PDF/DOCX files are not supported."
+                />
             </Accordion>
         </CardContent>
     </Card>
