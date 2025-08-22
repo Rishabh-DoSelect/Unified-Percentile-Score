@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -81,8 +82,10 @@ export default function Analyzer() {
       
       for (const key in newWeights) {
         if (key !== category) {
-          const proportion = rubricWeights[key as keyof typeof rubricWeights] / remainingTotal;
-          newWeights[key as keyof typeof rubricWeights] -= Math.round(overflow * proportion);
+          if (remainingTotal > 0) {
+            const proportion = rubricWeights[key as keyof typeof rubricWeights] / remainingTotal;
+            newWeights[key as keyof typeof rubricWeights] -= Math.round(overflow * proportion);
+          }
         }
       }
     }
@@ -92,7 +95,7 @@ export default function Analyzer() {
     if (finalTotal !== 100) {
       const diff = 100 - finalTotal;
       const primaryCat = category as keyof typeof rubricWeights;
-      if(newWeights[primaryCat] + diff >= 0){
+      if(newWeights[primaryCat] + diff >= 0 && newWeights[primaryCat] + diff <= 100){
           newWeights[primaryCat] += diff;
       }
     }
@@ -192,7 +195,7 @@ export default function Analyzer() {
             value={[rubricWeights[category]]}
             onValueChange={([value]) => handleWeightChange(category, value)}
             max={100}
-            step={5}
+            step={1}
         />
     </div>
   )
@@ -266,3 +269,5 @@ export default function Analyzer() {
     </div>
   );
 }
+
+    
