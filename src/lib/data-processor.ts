@@ -15,6 +15,7 @@ import type {
   RankedCandidate,
   Rubric,
   TestStructure,
+  PlatformData,
 } from '@/lib/types';
 
 // --- UTILITY FUNCTIONS ---
@@ -26,6 +27,8 @@ const stddev = (arr: number[]) => {
   return Math.sqrt(sumOfSquares / (arr.length - 1));
 };
 const parseTimeTaken = (time: string | number): number => {
+    // This function will be deprecated as time is no longer in the new format.
+    // Kept for potential backward compatibility if needed, but should not be used.
     if (typeof time === 'number') return time;
     if (typeof time !== 'string' || !time) return 0;
     
@@ -41,7 +44,6 @@ const parseTimeTaken = (time: string | number): number => {
     const secondsMatch = timeLower.match(/(\d+)\s*s/);
     if (secondsMatch) totalSeconds += parseInt(secondsMatch[1]);
     
-    // If no units, assume it's seconds
     if (!hoursMatch && !minutesMatch && !secondsMatch && /^\d+$/.test(time)) {
         return parseInt(time);
     }
@@ -61,9 +63,67 @@ export const parseCsv = <T>(content:string): T[] => {
   });
   if (result.errors.length) {
     console.warn('CSV Parsing Errors:', result.errors);
+    // throw new Error(`CSV parsing failed: ${result.errors.map(e => e.message).join(', ')}`);
   }
   return result.data;
 };
+
+
+// --- NEW DATA TRANSFORMATION ---
+const transformPlatformData = (platformData: PlatformData[], testStructure: TestStructure[]): Candidate[] => {
+    const candidateMap: Map<string, Candidate> = new Map();
+
+    const structureMap = new Map(testStructure.map(s => [s.section_name, s]));
+
+    for (const record of platformData) {
+        const email = record.email;
+        if (!email) continue;
+
+        if (!candidateMap.has(email)) {
+            candidateMap.set(email, {
+                candidate_id: email,
+                name: record.full_name,
+                email: email,
+                attempts: 0, // This will be aggregated
+                total_time_sec: 0, // This will be aggregated
+                proctoring_verdict: 'Negligible', // Default, can be updated
+            });
+        }
+        
+        const candidate = candidateMap.get(email)!;
+        
+        // Aggregate attempts and time
+        candidate.attempts += record.run_details?.testcases_total || 1; // Fallback to 1 attempt
+        
+        // Find corresponding section in test structure
+        const section = structureMap.get(record.problem_name);
+        if (section) {
+            let score = 0;
+            if (record.run_details && typeof record.run_details.score === 'number') {
+                // Coding and Project questions have a direct score
+                score = record.run_details.score;
+            } else if (record.mcq_choice && section.correct_answer) {
+                // MCQ questions need score calculation
+                const isCorrect = JSON.stringify(record.mcq_choice.sort()) === JSON.stringify(section.correct_answer.sort());
+                score = isCorrect ? section.problem_score : 0;
+            }
+            
+            // Assign score to the candidate object using section_id as key
+            candidate[section.section_id.toLowerCase()] = score;
+        }
+
+        // Update proctoring verdict (take the most severe one)
+        const verdicts = ['Negligible', 'Minor Violations', 'Severe Violations'];
+        const currentVerdictIndex = verdicts.indexOf(candidate.proctoring_verdict || 'Negligible');
+        const newVerdictIndex = verdicts.indexOf(record.proctor_verdict || 'Negligible');
+        if (newVerdictIndex > currentVerdictIndex) {
+            candidate.proctoring_verdict = record.proctor_verdict;
+        }
+    }
+
+    return Array.from(candidateMap.values());
+};
+
 
 // --- SCORING RULES ---
 
@@ -74,57 +134,38 @@ const calculateSkillAlignment = (
 ): number => {
   let totalWeightedScore = 0;
 
-  console.log(`\n\n--- Calculating Skill Alignment for ${candidate.name} (${candidate.candidate_id}) ---`);
-
   if (!jdSettings || !jdSettings.skill_weights) {
     console.error("FATAL: JD settings or skill_weights are missing. Returning 0.", { jdSettings });
     return 0;
   }
   
-  // Create a case-insensitive map of skill weights from the JD
   const skillWeightsLower: Record<string, number> = {};
   for (const skill in jdSettings.skill_weights) {
       skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
   }
 
-  console.log("JD Skill Weights (lowercase):", skillWeightsLower);
-
   for (const section of testStructure) {
-    console.log(`\nProcessing section: ${section.section_name} (ID: ${section.section_id})`);
     if (!section.skill) {
-        console.log(" -> Section has no skill. Skipping.");
         continue;
     };
 
     const skillLower = section.skill.toLowerCase();
     const jdWeight = skillWeightsLower[skillLower] || 0;
 
-    console.log(` -> Section Skill: '${section.skill}' (lowercase: '${skillLower}')`);
-    console.log(` -> JD Weight for this skill: ${jdWeight}`);
-
     if (jdWeight > 0) {
       const sectionScoreKey = section.section_id.toLowerCase();
       const candidateScore = candidate[sectionScoreKey] ?? 0;
-      const normalizedScore = Math.max(0, Math.min(100, candidateScore)) / 100;
-      const weightInSection = section.weight_in_section || 1.0;
+      
+      const maxScore = section.problem_score || 100;
+      const normalizedScore = candidateScore / maxScore;
 
+      const weightInSection = section.weight_in_section || 1.0;
       const sectionContribution = normalizedScore * weightInSection * jdWeight;
       totalWeightedScore += sectionContribution;
-      
-      console.log(`  -> Section Score Key: '${sectionScoreKey}'`);
-      console.log(`  -> Candidate's Raw Score: ${candidateScore}`);
-      console.log(`  -> Normalized Score (0-1): ${normalizedScore}`);
-      console.log(`  -> Weight within Section: ${weightInSection}`);
-      console.log(`  -> CONTRIBUTION to total: ${normalizedScore} * ${weightInSection} * ${jdWeight} = ${sectionContribution}`);
-      console.log(`  -> CUMULATIVE totalWeightedScore: ${totalWeightedScore}`);
-    } else {
-        console.log(" -> Skipping score calculation as JD weight is 0.");
     }
   }
   
   const finalScore = Math.max(0, Math.min(1, totalWeightedScore));
-  console.log(`\n--- FINAL Skill Alignment Score for ${candidate.name}: ${finalScore} ---`);
-  
   return finalScore;
 };
 
@@ -149,8 +190,13 @@ const calculateProblemSolving = (candidate: Candidate, testStructure: TestStruct
   if (sectionIds.length === 0) return 0.5;
 
   const sectionScoresNormalized = sectionIds
-    .map(id => (candidate[id] ?? 0) / 100)
-    .filter(score => score !== undefined);
+    .map(id => {
+        const section = testStructure.find(s => s.section_id.toLowerCase() === id);
+        if (!section) return undefined;
+        const maxScore = section.problem_score || 100;
+        return (candidate[id] ?? 0) / maxScore;
+    })
+    .filter(score => score !== undefined) as number[];
 
   if (sectionScoresNormalized.length === 0) return 0.5;
 
@@ -166,24 +212,25 @@ const calculateEfficiencyConsistency = (
   allCandidates: Candidate[],
   testStructure: TestStructure[]
 ): number => {
-  const allTimes = allCandidates.map(c => c.total_time_sec).filter(t => t > 0).sort((a, b) => a - b);
-  const candidateTime = candidate.total_time_sec;
-  let speedScore = 0.5; // Default score if no time data
-  if (allTimes.length > 0 && candidateTime > 0) {
-      const rank = allTimes.indexOf(candidateTime) + 1;
-      const percentile = rank / allTimes.length;
-      speedScore = 1 - percentile;
-  }
+  // Time-based scoring is deprecated with the new format.
+  // We will rely more on consistency.
+  const speedScore = 0.5; // Neutral score for speed
 
   const sectionIds = testStructure.map(s => s.section_id.toLowerCase());
    const sectionScoresNormalized = sectionIds
-    .map(id => (candidate[id] ?? 0) / 100)
-    .filter(score => score !== undefined);
+    .map(id => {
+        const section = testStructure.find(s => s.section_id.toLowerCase() === id);
+        if (!section) return undefined;
+        const maxScore = section.problem_score || 100;
+        return (candidate[id] ?? 0) / maxScore;
+    })
+    .filter(score => score !== undefined) as number[];
+
 
   if (sectionScoresNormalized.length === 0) return 0.5;
   const consistencyScore = 1 - stddev(sectionScoresNormalized);
 
-  const score = 0.6 * speedScore + 0.4 * consistencyScore;
+  const score = 0.4 * speedScore + 0.6 * consistencyScore; // Shifted weight to consistency
   return Math.max(0, Math.min(1, score));
 };
 
@@ -203,7 +250,6 @@ const calculateIntegrityRisk = (candidate: Candidate): number => {
           break;
   }
   
-  // The risk is the penalty itself. The score is the inverse of risk.
   const risk = proctorPenalty;
   return 1 - Math.max(0, Math.min(1, risk)); 
 };
@@ -222,16 +268,12 @@ const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'|
 const rankAndPercentile = (candidatesScores: CandidateScores[], allCandidates: Candidate[]): Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
     
     const sortedCandidates = [...candidatesScores].sort((a, b) => {
-        const aTime = allCandidates.find(c => c.candidate_id === a.candidate_id)?.total_time_sec ?? Infinity;
-        const bTime = allCandidates.find(c => c.candidate_id === b.candidate_id)?.total_time_sec ?? Infinity;
-
+        // Tie-breaking with time is deprecated.
         // Primary sort: final_score DESC
         if (b.final_score !== a.final_score) return b.final_score - a.final_score;
         // Tie-breaker 1: integrity_risk DESC (higher is better)
         if (b.integrity_risk !== a.integrity_risk) return b.integrity_risk - a.integrity_risk;
-        // Tie-breaker 2: total_time_sec ASC (lower is better)
-        if (aTime !== bTime) return aTime - bTime;
-        // Tie-breaker 3: candidate_id ASC for stability
+        // Tie-breaker 2: candidate_id ASC for stability
         return a.candidate_id.localeCompare(b.candidate_id);
     });
 
@@ -240,7 +282,6 @@ const rankAndPercentile = (candidatesScores: CandidateScores[], allCandidates: C
 
     return sortedCandidates.map((candidate, index) => {
         const rank = index + 1;
-        // Percentile formula: (N - rank + 1) / N * 100
         const UPS_percentile = (N - rank + 1) / N * 100;
         return {
             ...candidate,
@@ -299,7 +340,7 @@ export async function processCandidateData(
   jdYaml: string,
   rubric: Rubric,
   structureCsv: string,
-  candidatesCsv: string,
+  candidatesJson: string, // Changed from candidatesCsv
   actions: {
     getAIInsights: typeof getAIInsights;
     getCvSignals: typeof getCvSignals;
@@ -308,39 +349,27 @@ export async function processCandidateData(
   // 1. Parse Inputs
   const jdSettings = parseYaml<JDSettings>(jdYaml);
   const testStructure = parseCsv<TestStructure>(structureCsv);
-  const rawCandidates = parseCsv<any>(candidatesCsv);
+  const platformData = JSON.parse(candidatesJson) as PlatformData[];
   
-  if (!rawCandidates.length) {
-    throw new Error('Candidate CSV file is empty or could not be parsed.');
+  if (!platformData.length) {
+    throw new Error('Candidate JSON is empty or could not be parsed.');
   }
+
+  // 2. Transform Platform Data into unified Candidate objects
+  const candidates = transformPlatformData(platformData, testStructure);
   
-  const candidates: Candidate[] = rawCandidates.map((rc, index) => ({
-      ...rc,
-      candidate_id: rc.candidate_id || `CAND${String(index + 1).padStart(3, '0')}`,
-      name: rc.name,
-      total_time_sec: parseTimeTaken(rc.time_taken),
+  // 3. Parse CVs from text column (if it exists)
+  // This part needs adaptation if CV data is no longer provided in the same way.
+  // For now, we assume it's not present in the new JSON format.
+  const cvSignals: CvSignal[] = candidates.map(c => ({
+      candidate_id: c.candidate_id,
+      projects: 0,
+      internships: 0,
+      github: false,
+      keywords: [],
   }));
 
-  // 2. Parse CVs from text column
-  const cvSignalsPromises = candidates.map(async (c) => {
-    if (c.resume && typeof c.resume === 'string' && c.resume.trim().length > 0) {
-        const resumeText = c.resume;
-        try {
-            const signals = await actions.getCvSignals({ resumeText });
-            return { candidate_id: c.candidate_id, ...signals };
-        } catch (aiError) {
-            console.error(`AI CV parsing failed for ${c.candidate_id}:`, aiError);
-             // Fallback to default if AI parsing fails
-            return { candidate_id: c.candidate_id, projects: 0, internships: 0, github: false, keywords: [] };
-        }
-    }
-    // Return default signals if no resume text
-    return { candidate_id: c.candidate_id, projects: 0, internships: 0, github: false, keywords: [] };
-  });
-
-  const cvSignals = (await Promise.all(cvSignalsPromises)) as CvSignal[];
-
-  // 3. Score each candidate
+  // 4. Score each candidate
   const candidateScores: CandidateScores[] = candidates.map(c => {
     const cv = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
     const scores = {
@@ -359,32 +388,24 @@ export async function processCandidateData(
   });
 
 
-  // 4. Rank and get Percentile
+  // 5. Rank and get Percentile
   const ranked = rankAndPercentile(candidateScores, candidates);
   const withRecs = addRecommendations(ranked, rubric);
   
-  // 5. Generate AI Insights for candidate summary
+  // 6. Generate AI Insights for candidate summary
   const insightsPromises = withRecs.map(async (c) => {
+    // Since CV data isn't in the new format, AI insights will be limited.
+    // We pass what we have.
     const rawCandidate = candidates.find(rc => rc.candidate_id === c.candidate_id)!;
-    const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
 
     try {
-      // Only call AI if there is a resume to analyze
-      if (rawCandidate.resume && rawCandidate.resume.trim().length > 0) {
         const testResults: Record<string, number> = {};
         testStructure.forEach(ts => {
-          if (ts && ts.section_id) {
-            testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
-          }
+            if (ts && ts.section_id) {
+                testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
+            }
         });
-
-        const cvSignalsForAI = cvData ? {
-            projects: cvData.projects,
-            internships: cvData.internships,
-            github: cvData.github,
-            keywords: cvData.keywords
-        } : undefined;
-
+        
         const aiInput: GenerateCandidateInsightsInput = {
             candidateId: c.candidate_id,
             name: c.name,
@@ -396,21 +417,17 @@ export async function processCandidateData(
             finalScore: c.final_score,
             UPSErrorcentile: c.UPS_percentile,
             testResults,
-            cvSignals: cvSignalsForAI,
+            cvSignals: undefined, // No CV signals from the new format
         };
         const insights = await actions.getAIInsights(aiInput);
-        // Fallback for empty AI results
+
         if (!insights.keyStrengths && !insights.keyRisks) {
-          const fallback = generateFallbackInsights(c);
-          return { key_strengths: fallback.key_strengths, key_risks: fallback.key_risks };
+            return generateFallbackInsights(c);
         }
         return { key_strengths: insights.keyStrengths, key_risks: insights.keyRisks };
-      }
-      // If no resume, generate fallback immediately.
-      return generateFallbackInsights(c);
+
     } catch (error) {
       console.error(`Error generating AI insights for ${c.candidate_id}:`, error);
-      // If the AI call fails for any reason, generate fallback insights.
       return generateFallbackInsights(c);
     }
   });
@@ -428,7 +445,7 @@ export async function processCandidateData(
   });
 
 
-  // 6. Assemble Final Report
+  // 7. Assemble Final Report
   const totals = {
     candidates: candidates.length,
     strong_hires: finalRankedCandidates.filter(c => c.recommendation === 'Strong Hire').length,
@@ -442,5 +459,3 @@ export async function processCandidateData(
     executive_summary: finalRankedCandidates,
   };
 }
-
-    

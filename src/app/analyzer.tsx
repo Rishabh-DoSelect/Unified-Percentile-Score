@@ -35,13 +35,11 @@ import { Textarea } from '@/components/ui/textarea';
 interface FileState {
   jd: string | null;
   structure: string | null;
-  candidates: string | null;
 }
 
 interface FileNameState {
   jd: string;
   structure: string;
-  candidates: string;
 }
 
 const initialWeights = {
@@ -56,12 +54,10 @@ export default function Analyzer() {
   const [fileContents, setFileContents] = useState<FileState>({
     jd: null,
     structure: null,
-    candidates: null,
   });
   const [fileNames, setFileNames] = useState<FileNameState>({
     jd: '',
     structure: '',
-    candidates: '',
   });
 
   const [jdText, setJdText] = useState('');
@@ -70,23 +66,14 @@ export default function Analyzer() {
 
   const [problemsJson, setProblemsJson] = useState('');
   const [isGeneratingStructure, setIsGeneratingStructure] = useState(false);
+  
+  const [candidatesJson, setCandidatesJson] = useState('');
+
 
   const [rubricWeights, setRubricWeights] = useState(initialWeights);
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<FullReport | null>(null);
   const { toast } = useToast();
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: keyof Omit<FileState, 'jd' | 'structure'>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setFileContents(prev => ({ ...prev, [fileType]: event.target?.result as string }));
-        setFileNames(prev => ({ ...prev, [fileType]: file.name }));
-      };
-      reader.readAsText(file);
-    }
-  };
 
   const handleGenerateJd = async () => {
     if (!fileContents.structure) {
@@ -148,6 +135,10 @@ export default function Analyzer() {
   };
 
   const handleDownload = (content: string, fileName: string, type: 'text/yaml' | 'text/csv' = 'text/yaml') => {
+    if (!content) {
+        toast({ variant: 'destructive', title: 'No Content', description: 'There is no generated content to download.' });
+        return;
+    }
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -193,14 +184,14 @@ export default function Analyzer() {
     setRubricWeights(newWeights);
   };
   
-  const allRequiredFilesUploaded = fileContents.jd && fileContents.structure && fileContents.candidates;
+  const allRequiredFilesUploaded = fileContents.jd && fileContents.structure && candidatesJson.trim();
 
   const handleGenerateReport = async () => {
     if (!allRequiredFilesUploaded) {
       toast({
         variant: 'destructive',
-        title: 'Missing Files',
-        description: 'Please upload all required configuration and data files.',
+        title: 'Missing Files or Data',
+        description: 'Please generate or upload all required files and provide candidate data.',
       });
       return;
     }
@@ -228,7 +219,7 @@ export default function Analyzer() {
         fileContents.jd!,
         rubric,
         fileContents.structure!,
-        fileContents.candidates!,
+        candidatesJson,
         { getAIInsights, getCvSignals }
       );
       setReport(fullReport);
@@ -251,30 +242,14 @@ export default function Analyzer() {
 
   const handleNewReport = () => {
     setReport(null);
-    setFileContents({ jd: null, structure: null, candidates: null });
-    setFileNames({ jd: '', structure: '', candidates: ''});
+    setFileContents({ jd: null, structure: null });
+    setFileNames({ jd: '', structure: ''});
     setJdText('');
     setRole('');
     setProblemsJson('');
+    setCandidatesJson('');
     setRubricWeights(initialWeights);
   }
-
-  const FileInput = ({ id, label, description, isOptional = false, fileName }: { id: keyof Omit<FileState, 'jd' | 'structure'>, label: string, description: string, isOptional?: boolean, fileName: string }) => (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-base font-semibold">{label} {!isOptional && <span className="text-destructive">*</span>}</Label>
-      <p className="text-sm text-muted-foreground">{description}</p>
-      <div className="flex items-center gap-2">
-        <Input id={id} type="file" onChange={(e) => handleFileChange(e, id)} accept=".yaml,.csv" className="hidden" />
-        <Button asChild variant="outline">
-          <Label htmlFor={id} className="cursor-pointer flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            <span>Choose File</span>
-          </Label>
-        </Button>
-        {fileName && <div className="text-sm text-muted-foreground flex items-center gap-2"><FileCheck2 className="h-4 w-4 text-green-600" /> {fileName}</div>}
-      </div>
-    </div>
-  );
 
   const RubricSlider = ({ label, category }: { label: string; category: keyof typeof rubricWeights; }) => (
     <div className='space-y-2'>
@@ -398,8 +373,24 @@ export default function Analyzer() {
                                 )}
                               </div>
                           </div>
-
-                          <FileInput id="candidates" label="Candidate Results" description="CSV with scores and (optionally) a 'resume' column containing the full text of the candidate's CV." fileName={fileNames.candidates} />
+                          
+                          {/* Candidate Data Input */}
+                          <div className="space-y-4">
+                             <Label className="text-base font-semibold">Candidate Results Data <span className="text-destructive">*</span></Label>
+                             <p className="text-sm text-muted-foreground">Paste the raw candidate results JSON from your platform.</p>
+                             <Textarea 
+                                placeholder='[{"email": "candidate@example.com", "problem_name": "Problem 1", ...}]' 
+                                value={candidatesJson} 
+                                onChange={(e) => setCandidatesJson(e.target.value)}
+                                className="min-h-[200px] font-mono text-xs"
+                             />
+                              {candidatesJson.trim() && (
+                                  <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                      <FileCheck2 className="h-4 w-4 text-green-600" />
+                                      <span>JSON data provided.</span>
+                                  </div>
+                              )}
+                          </div>
                       </CardContent>
                     </Card>
                     <DialogContent>

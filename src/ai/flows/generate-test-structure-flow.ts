@@ -6,7 +6,7 @@
  *
  * - generateTestStructure - A function that triggers the test structure generation flow.
  * - GenerateTestStructureInput - The input type for the generateTestStructure function.
- * - GenerateTestStructureOutput - The return type for the generateTestStructure function.
+ * - GenerateTestStructureOutput - The return type for the generateTestructure function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -17,8 +17,9 @@ const GenerateTestStructureInputSchema = z.object({
 });
 export type GenerateTestStructureInput = z.infer<typeof GenerateTestStructureInputSchema>;
 
+// Extend the output schema to include problem_score and correct_answer for downstream processing
 const GenerateTestStructureOutputSchema = z.object({
-  structure_csv: z.string().describe('A CSV formatted string with the headers: section_id,section_name,skill,weight_in_section'),
+  structure_csv: z.string().describe('A CSV formatted string with the headers: section_id,section_name,skill,weight_in_section,problem_score,correct_answer'),
 });
 export type GenerateTestStructureOutput = z.infer<typeof GenerateTestStructureOutputSchema>;
 
@@ -34,13 +35,15 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert at data transformation. Your task is to convert a JSON array of programming problems into a CSV file representing a test structure.
 
 The output CSV must have the following headers:
-section_id,section_name,skill,weight_in_section
+section_id,section_name,skill,weight_in_section,problem_score,correct_answer
 
 Map the JSON fields to the CSV columns as follows:
 - 'section_id': Use the value from the 'problem_slug' field.
 - 'section_name': Use the value from the 'problem_name' field.
 - 'skill': Use the value from the 'insight_tags' field. If 'insight_tags' is missing or empty, use the first relevant skill from the 'tags' field (e.g., 'Java', 'Python', 'React 18.2').
-- 'weight_in_section': This should be a normalized weight from 0.0 to 1.0. Calculate it by dividing the 'problem_score' by the maximum possible score for that 'problem_type'. Assume 'Coding' and 'Project Based' problems have a max score of 100, and 'Multiple-choice' problems have a max score of 20.
+- 'weight_in_section': This should always be 1.0, as scoring is now handled per-question.
+- 'problem_score': Use the numeric value from the 'problem_score' field.
+- 'correct_answer': Use the value from the 'correct_answer' field. If it's null or doesn't exist, leave the column empty.
 
 Input JSON:
 ---

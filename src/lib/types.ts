@@ -25,16 +25,20 @@ export interface TestStructure {
   section_name: string;
   skill: string;
   weight_in_section: number;
+  // Added from test structure generation
+  problem_score: number;
+  correct_answer?: any;
 }
 
 export interface Candidate {
   candidate_id: string;
   name: string;
+  email: string;
   total_time_sec: number;
   attempts: number;
   proctoring_verdict?: 'Negligible' | 'Minor Violations' | 'Severe Violations' | string;
-  resume?: string; // Optional URL to the candidate's resume
-  [key: string]: any; // for section scores like S1, S2, etc. and other raw columns
+  resume?: string; // This may be deprecated if not in the new format
+  [key: string]: any; // for section scores like s1, s2, etc. and other raw columns
 }
 
 export interface CvSignal {
@@ -83,4 +87,34 @@ export interface QaCheck {
   check: string;
   status: 'pass' | 'fail' | 'warn';
   details: string;
+}
+
+// New types for the raw platform data format
+export interface PlatformData {
+    proctor_verdict: 'Negligible' | 'Minor Violations' | 'Severe Violations' | string;
+    code?: string;
+    plagiarism?: any;
+    problem_name: string;
+    full_name: string;
+    run_details?: {
+      status: string;
+      testcases_total: number;
+      solution_id: number;
+      sid: string;
+      testcases_failed: number;
+      evaluation_status: string;
+      assessment_id: number;
+      testcases_passed: number;
+      queue: string;
+      testcases: Record<string, any>;
+      score: number;
+      evaluation_started: string;
+      evaluation_ended: string;
+      tid: string;
+      assessment_type: string;
+      running_time: string;
+    };
+    jupyter_data?: any;
+    mcq_choice?: string[];
+    email: string;
 }
