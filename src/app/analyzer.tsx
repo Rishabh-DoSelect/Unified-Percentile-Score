@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,11 +35,14 @@ import { Textarea } from '@/components/ui/textarea';
 interface FileState {
   jd: string | null;
   structure: string | null;
+  candidates: string | null;
 }
 
 interface FileNameState {
   jd: string;
   structure: string;
+  problems: string;
+  candidates: string;
 }
 
 const initialWeights = {
@@ -54,10 +57,13 @@ export default function Analyzer() {
   const [fileContents, setFileContents] = useState<FileState>({
     jd: null,
     structure: null,
+    candidates: null,
   });
   const [fileNames, setFileNames] = useState<FileNameState>({
     jd: '',
     structure: '',
+    problems: '',
+    candidates: '',
   });
 
   const [jdText, setJdText] = useState('');
@@ -66,14 +72,30 @@ export default function Analyzer() {
 
   const [problemsJson, setProblemsJson] = useState('');
   const [isGeneratingStructure, setIsGeneratingStructure] = useState(false);
-  
-  const [candidatesJson, setCandidatesJson] = useState('');
-
 
   const [rubricWeights, setRubricWeights] = useState(initialWeights);
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<FullReport | null>(null);
   const { toast } = useToast();
+  
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, fileType: 'problems' | 'candidates') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (fileType === 'problems') {
+        setProblemsJson(content);
+        setFileNames(prev => ({...prev, problems: file.name}));
+      } else {
+        setFileContents(prev => ({...prev, candidates: content}));
+        setFileNames(prev => ({...prev, candidates: file.name}));
+      }
+    };
+    reader.readAsText(file);
+  };
+
 
   const handleGenerateJd = async () => {
     if (!fileContents.structure) {
@@ -184,7 +206,7 @@ export default function Analyzer() {
     setRubricWeights(newWeights);
   };
   
-  const allRequiredFilesUploaded = fileContents.jd && fileContents.structure && candidatesJson.trim();
+  const allRequiredFilesUploaded = fileContents.jd && fileContents.structure && fileContents.candidates;
 
   const handleGenerateReport = async () => {
     if (!allRequiredFilesUploaded) {
@@ -219,7 +241,7 @@ export default function Analyzer() {
         fileContents.jd!,
         rubric,
         fileContents.structure!,
-        candidatesJson,
+        fileContents.candidates!,
         { getAIInsights, getCvSignals }
       );
       setReport(fullReport);
@@ -242,14 +264,34 @@ export default function Analyzer() {
 
   const handleNewReport = () => {
     setReport(null);
-    setFileContents({ jd: null, structure: null });
-    setFileNames({ jd: '', structure: ''});
+    setFileContents({ jd: null, structure: null, candidates: null });
+    setFileNames({ jd: '', structure: '', problems: '', candidates: ''});
     setJdText('');
     setRole('');
     setProblemsJson('');
-    setCandidatesJson('');
     setRubricWeights(initialWeights);
   }
+  
+  const FileInput = ({ id, label, onFileChange, fileName }: { id: string, label: string, onFileChange: (e: ChangeEvent<HTMLInputElement>) => void, fileName: string }) => (
+    <div>
+        <Label htmlFor={id} className="cursor-pointer inline-block w-full">
+            <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-lg hover:bg-muted transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
+                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                    <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> {label}</p>
+                    <p className="text-xs text-muted-foreground">JSON file</p>
+                </div>
+            </div>
+        </Label>
+        <Input id={id} type="file" className="hidden" accept=".json,application/json" onChange={onFileChange} />
+        {fileName && (
+            <div className="mt-2 text-sm text-muted-foreground flex items-center gap-2">
+                <FileCheck2 className="h-4 w-4 text-green-600" />
+                <span>{fileName}</span>
+            </div>
+        )}
+    </div>
+  );
 
   const RubricSlider = ({ label, category }: { label: string; category: keyof typeof rubricWeights; }) => (
     <div className='space-y-2'>
@@ -342,16 +384,11 @@ export default function Analyzer() {
 
                           {/* Test Structure Generation */}
                            <div className="space-y-4">
-                             <Label className="text-base font-semibold">Test Structure <span className="text-destructive">*</span></Label>
-                             <p className="text-sm text-muted-foreground">Paste the problems JSON from your platform to generate the test structure.</p>
-                             <Textarea 
-                                placeholder='[{"problem_slug": "q1", ...}]' 
-                                value={problemsJson} 
-                                onChange={(e) => setProblemsJson(e.target.value)}
-                                className="min-h-[150px] font-mono text-xs"
-                             />
+                             <Label className="text-base font-semibold">Test Problems Data <span className="text-destructive">*</span></Label>
+                             <p className="text-sm text-muted-foreground">Upload the problems JSON from your platform to generate the test structure.</p>
+                              <FileInput id="problems-file" label="or drag and drop" onFileChange={(e) => handleFileChange(e, 'problems')} fileName={fileNames.problems} />
                               <div className="flex items-center justify-between">
-                                <Button onClick={handleGenerateStructure} disabled={isGeneratingStructure}>
+                                <Button onClick={handleGenerateStructure} disabled={isGeneratingStructure || !problemsJson}>
                                     {isGeneratingStructure ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                                     Generate Test Structure
                                 </Button>
@@ -377,19 +414,8 @@ export default function Analyzer() {
                           {/* Candidate Data Input */}
                           <div className="space-y-4">
                              <Label className="text-base font-semibold">Candidate Results Data <span className="text-destructive">*</span></Label>
-                             <p className="text-sm text-muted-foreground">Paste the raw candidate results JSON from your platform.</p>
-                             <Textarea 
-                                placeholder='[{"email": "candidate@example.com", "problem_name": "Problem 1", ...}]' 
-                                value={candidatesJson} 
-                                onChange={(e) => setCandidatesJson(e.target.value)}
-                                className="min-h-[200px] font-mono text-xs"
-                             />
-                              {candidatesJson.trim() && (
-                                  <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                      <FileCheck2 className="h-4 w-4 text-green-600" />
-                                      <span>JSON data provided.</span>
-                                  </div>
-                              )}
+                              <p className="text-sm text-muted-foreground">Upload the raw candidate results JSON from your platform.</p>
+                             <FileInput id="candidates-file" label="or drag and drop" onFileChange={(e) => handleFileChange(e, 'candidates')} fileName={fileNames.candidates} />
                           </div>
                       </CardContent>
                     </Card>
@@ -433,3 +459,5 @@ export default function Analyzer() {
     </TooltipProvider>
   );
 }
+
+    
