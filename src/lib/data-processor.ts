@@ -154,7 +154,19 @@ const calculateEfficiencyConsistency = (
 
 const calculateIntegrityRisk = (candidate: Candidate): number => {
   const plagiarismPenalty = candidate.plagiarism_score || 0;
-  const proctorPenalty = Math.min(candidate.proctoring_flags || 0, 5) / 5;
+  let proctorPenalty = 0.1; // Default low penalty
+  
+  switch (candidate.proctoring_verdict) {
+      case 'Severe Violations':
+          proctorPenalty = 1.0;
+          break;
+      case 'Minor Violations':
+          proctorPenalty = 0.5;
+          break;
+      case 'Negligible':
+          proctorPenalty = 0.1;
+          break;
+  }
   
   const risk = 0.7 * plagiarismPenalty + 0.3 * proctorPenalty;
   return 1 - Math.max(0, Math.min(1, risk)); // Invert risk to get score

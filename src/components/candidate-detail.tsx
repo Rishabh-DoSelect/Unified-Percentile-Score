@@ -114,8 +114,8 @@ export function CandidateDetail({ candidate, open, onOpenChange }: CandidateDeta
                     </div>
                      <Separator />
                      <div className="flex justify-between">
-                        <span className="text-muted-foreground flex items-center gap-2"><Projector /> Proctoring Flags</span>
-                        <span>{candidate.raw_candidate_data.proctoring_flags}</span>
+                        <span className="text-muted-foreground flex items-center gap-2"><Projector /> Proctoring Verdict</span>
+                        <span>{candidate.raw_candidate_data.proctoring_verdict || 'N/A'}</span>
                     </div>
                      {candidate.raw_cv_data && (
                         <>
