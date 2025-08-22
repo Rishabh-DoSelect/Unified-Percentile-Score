@@ -110,12 +110,11 @@ export default function Analyzer() {
         }
         const skills = [...new Set(testStructure.map(s => s.skill))];
         
-        const jdSettings: JDSettings = {
+        const generatedYaml = await generateJdFromText({
+          jobDescription: jdText,
+          skills,
           role,
-          skill_weights: skills.reduce((acc, skill) => ({...acc, [skill]: 0}), {}) // Placeholder, AI will generate
-        }
-        
-        const generatedYaml = await generateJdFromText({ jobDescription: jdText, ...jdSettings });
+        });
         
         setFileContents(prev => ({...prev, jd: generatedYaml}));
         setFileNames(prev => ({...prev, jd: 'jd-generated.yaml'}));

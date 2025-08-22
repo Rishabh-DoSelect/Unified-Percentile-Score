@@ -2,10 +2,9 @@
 'use server';
 
 import { generateCandidateInsights, type GenerateCandidateInsightsInput } from '@/ai/flows/generate-candidate-insights';
-import { generateJdWeights } from '@/ai/flows/generate-jd-weights-flow';
+import { generateJdWeights, type GenerateJdWeightsInput } from '@/ai/flows/generate-jd-weights-flow';
 import { generateTestStructure } from '@/ai/flows/generate-test-structure-flow';
 import { parseCv, type ParseCvInput, type ParseCvOutput } from '@/ai/flows/parse-cv-flow';
-import type { JDSettings } from '@/lib/types';
 
 export async function getAIInsights(
   input: GenerateCandidateInsightsInput
@@ -37,7 +36,7 @@ export async function getCvSignals(input: ParseCvInput): Promise<ParseCvOutput> 
     }
 }
 
-export async function generateJdFromText(input: JDSettings): Promise<string> {
+export async function generateJdFromText(input: GenerateJdWeightsInput): Promise<string> {
     const yamlResult = await generateJdWeights(input);
     return yamlResult;
 }

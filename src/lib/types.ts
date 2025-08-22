@@ -1,7 +1,7 @@
 
-export interface JDSettings {
-  role: string;
-  jobDescription?: string;
+import type { GenerateJdWeightsInput } from "@/ai/flows/generate-jd-weights-flow";
+
+export interface JDSettings extends GenerateJdWeightsInput {
   skill_weights: Record<string, number>;
 }
 
