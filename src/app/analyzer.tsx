@@ -247,7 +247,7 @@ export default function Analyzer() {
                       <CardContent className="space-y-8">
                           <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
                           <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
-                          <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and resume URLs. Resume URLs must be public and point to plain text (not PDF/DOCX)." fileName={fileNames.candidates} />
+                          <FileInput id="candidates" label="Candidate Results" description="CSV with scores and (optionally) a 'resume' column containing the full text of the candidate's CV." fileName={fileNames.candidates} />
                       </CardContent>
                     </Card>
                     <DialogContent>

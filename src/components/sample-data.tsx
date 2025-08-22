@@ -36,8 +36,8 @@ S6,Case Study,statistics,0.5`,
     candidates: {
         name: 'candidates.csv',
         content: `candidate_id,name,time_taken,attempts,plagiarism_score,proctoring_flags,resume,S1,S2,S3,S4,S5,S6
-CAND001,Alice,"30m 0s",1,0.05,0,https://gist.githubusercontent.com/username/gist_id/raw/revision_id/resume.txt,85,90,75,88,92,80
-CAND002,Bob,"36m 40s",2,0.1,1,https://gist.githubusercontent.com/username/gist_id/raw/revision_id/resume.txt,70,80,85,75,65,72`,
+CAND001,Alice,"30m 0s",1,0.05,0,"Experienced data scientist with a background in machine learning and statistical analysis. Skilled in Python, SQL, and R. Projects include a customer churn prediction model and a recommendation engine. Interned at Big Tech Inc.",85,90,75,88,92,80
+CAND002,Bob,"36m 40s",2,0.1,1,"Data analyst with a passion for data visualization and storytelling. Proficient in Tableau, Power BI, and Python (Pandas, Matplotlib). No GitHub profile available.",70,80,85,75,65,72`,
     },
 };
 
@@ -111,7 +111,7 @@ export function SampleData() {
                 <SampleItem 
                     title="Candidate Results (CSV)" 
                     file={samples.candidates}
-                    description="The 'resume' column should contain a public URL to a plain-text resume (e.g., a public website, a .txt file, or a Google Doc published to the web). Direct links to PDF/DOCX files are not supported."
+                    description="The (optional) 'resume' column should contain the full, plain-text content of the candidate's resume for AI analysis."
                 />
             </Accordion>
         </CardContent>
