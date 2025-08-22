@@ -5,10 +5,10 @@ import yaml from 'js-yaml';
 import Papa from 'papaparse';
 import type { getAIInsights, getCvSignals } from '@/app/actions';
 import type { GenerateCandidateInsightsInput } from '@/ai/flows/generate-candidate-insights';
-import type { ParseCvOutput } from '@/ai/flows/parse-cv-flow';
 import type {
   Candidate,
   CandidateScores,
+  CvData,
   CvSignal,
   FullReport,
   JDSettings,
@@ -26,31 +26,6 @@ const stddev = (arr: number[]) => {
   const sumOfSquares = arr.map(n => (n - arrMean) ** 2).reduce((a,b) => a + b, 0);
   return Math.sqrt(sumOfSquares / (arr.length - 1));
 };
-const parseTimeTaken = (time: string | number): number => {
-    // This function will be deprecated as time is no longer in the new format.
-    // Kept for potential backward compatibility if needed, but should not be used.
-    if (typeof time === 'number') return time;
-    if (typeof time !== 'string' || !time) return 0;
-    
-    let totalSeconds = 0;
-    const timeLower = time.toLowerCase();
-    
-    const hoursMatch = timeLower.match(/(\d+)\s*h/);
-    if (hoursMatch) totalSeconds += parseInt(hoursMatch[1]) * 3600;
-
-    const minutesMatch = timeLower.match(/(\d+)\s*m/);
-    if (minutesMatch) totalSeconds += parseInt(minutesMatch[1]) * 60;
-    
-    const secondsMatch = timeLower.match(/(\d+)\s*s/);
-    if (secondsMatch) totalSeconds += parseInt(secondsMatch[1]);
-    
-    if (!hoursMatch && !minutesMatch && !secondsMatch && /^\d+$/.test(time)) {
-        return parseInt(time);
-    }
-
-    return totalSeconds;
-};
-
 
 // --- PARSING & VALIDATION ---
 export const parseYaml = <T>(content: string): T => yaml.load(content) as T;
@@ -149,6 +124,7 @@ const calculateSkillAlignment = (
   jdSettings: JDSettings
 ): number => {
   let totalWeightedScore = 0;
+  let totalPossibleWeight = 0;
 
   if (!jdSettings || !jdSettings.skill_weights) {
     console.error("FATAL: JD settings or skill_weights are missing. Returning 0.", { jdSettings });
@@ -161,30 +137,30 @@ const calculateSkillAlignment = (
   }
 
   for (const section of testStructure) {
-    if (!section.skill) {
-        continue;
-    };
+    if (!section.skill) continue;
 
     const skillLower = section.skill.toLowerCase();
     const jdWeight = skillWeightsLower[skillLower] || 0;
+    
+    // The weight_in_section is considered 1 for all problems now.
+    const weightInSection = section.weight_in_section || 1.0; 
+    const sectionWeight = jdWeight * weightInSection;
+    totalPossibleWeight += sectionWeight;
 
     if (jdWeight > 0) {
       const sectionScoreKey = section.section_id.toLowerCase();
       const candidateScore = candidate[sectionScoreKey] ?? 0;
       
       const maxScore = section.problem_score || 100;
-      // Handle division by zero
       const normalizedScore = maxScore > 0 ? candidateScore / maxScore : 0;
-
-      // weight_in_section is deprecated but kept for compatibility. We assume 1.0.
-      const weightInSection = section.weight_in_section || 1.0; 
-      const sectionContribution = normalizedScore * weightInSection * jdWeight;
+      
+      const sectionContribution = normalizedScore * sectionWeight;
       totalWeightedScore += sectionContribution;
     }
   }
   
-  const finalScore = Math.max(0, Math.min(1, totalWeightedScore));
-  return finalScore;
+  const finalScore = totalPossibleWeight > 0 ? totalWeightedScore / totalPossibleWeight : 0;
+  return Math.max(0, Math.min(1, finalScore));
 };
 
 
@@ -230,9 +206,7 @@ const calculateEfficiencyConsistency = (
   allCandidates: Candidate[],
   testStructure: TestStructure[]
 ): number => {
-  // Time-based scoring is deprecated with the new format.
-  // We will rely more on consistency.
-  const speedScore = 0.5; // Neutral score for speed
+  const speedScore = 0.5;
 
   const sectionIds = testStructure.map(s => s.section_id.toLowerCase());
    const sectionScoresNormalized = sectionIds
@@ -286,12 +260,8 @@ const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'|
 const rankAndPercentile = (candidatesScores: CandidateScores[], allCandidates: Candidate[]): Omit<RankedCandidate, 'recommendation' | 'key_strengths' | 'key_risks' | 'raw_candidate_data' | 'raw_cv_data'>[] => {
     
     const sortedCandidates = [...candidatesScores].sort((a, b) => {
-        // Tie-breaking with time is deprecated.
-        // Primary sort: final_score DESC
         if (b.final_score !== a.final_score) return b.final_score - a.final_score;
-        // Tie-breaker 1: integrity_risk DESC (higher is better)
         if (b.integrity_risk !== a.integrity_risk) return b.integrity_risk - a.integrity_risk;
-        // Tie-breaker 2: candidate_id ASC for stability
         return a.candidate_id.localeCompare(b.candidate_id);
     });
 
@@ -358,7 +328,8 @@ export async function processCandidateData(
   jdYaml: string,
   rubric: Rubric,
   structureCsv: string,
-  candidatesJson: string, // Changed from candidatesCsv
+  candidatesJson: string,
+  cvsCsv: string | null, // Optional CV data
   actions: {
     getAIInsights: typeof getAIInsights;
     getCvSignals: typeof getCvSignals;
@@ -375,21 +346,30 @@ export async function processCandidateData(
 
   // 2. Transform Platform Data into unified Candidate objects
   const candidates = transformPlatformData(platformData, testStructure);
-  
-  // 3. Parse CVs from text column (if it exists)
-  // This part needs adaptation if CV data is no longer provided in the same way.
-  // For now, we assume it's not present in the new format.
-  const cvSignals: CvSignal[] = candidates.map(c => ({
-      candidate_id: c.candidate_id,
-      projects: 0,
-      internships: 0,
-      github: false,
-      keywords: [],
-  }));
 
+  // 3. Parse optional CVs and generate signals
+  let cvSignalsMap: Map<string, CvSignal> = new Map();
+  if (cvsCsv) {
+    const cvData = parseCsv<CvData>(cvsCsv);
+    const cvSignalPromises = cvData.map(async (cv) => {
+        if (!cv.email || !cv.cv_text) return null;
+        const signals = await actions.getCvSignals({ resumeText: cv.cv_text });
+        return {
+            candidate_id: cv.email,
+            ...signals
+        };
+    });
+    const results = await Promise.all(cvSignalPromises);
+    results.forEach(signal => {
+        if (signal) {
+            cvSignalsMap.set(signal.candidate_id, signal);
+        }
+    });
+  }
+  
   // 4. Score each candidate
   const candidateScores: CandidateScores[] = candidates.map(c => {
-    const cv = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
+    const cv = cvSignalsMap.get(c.candidate_id);
     const scores = {
       skill_alignment: calculateSkillAlignment(c, testStructure, jdSettings),
       knowledge_evidence: calculateKnowledgeEvidence(cv),
@@ -412,9 +392,8 @@ export async function processCandidateData(
   
   // 6. Generate AI Insights for candidate summary
   const insightsPromises = withRecs.map(async (c) => {
-    // Since CV data isn't in the new format, AI insights will be limited.
-    // We pass what we have.
     const rawCandidate = candidates.find(rc => rc.candidate_id === c.candidate_id)!;
+    const cvSignals = cvSignalsMap.get(c.candidate_id);
 
     try {
         const testResults: Record<string, number> = {};
@@ -435,7 +414,7 @@ export async function processCandidateData(
             finalScore: c.final_score,
             UPSErrorcentile: c.UPS_percentile,
             testResults,
-            cvSignals: undefined, // No CV signals from the new format
+            cvSignals,
         };
         const insights = await actions.getAIInsights(aiInput);
 
@@ -458,7 +437,7 @@ export async function processCandidateData(
           ...c,
           ...aiResults[i],
           raw_candidate_data: candidates.find(rc => rc.candidate_id === c.candidate_id)!,
-          raw_cv_data: cvSignals?.find(cv => cv.candidate_id === c.candidate_id)
+          raw_cv_data: cvSignalsMap.get(c.candidate_id)
       }
   });
 

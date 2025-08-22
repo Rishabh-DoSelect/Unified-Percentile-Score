@@ -36,6 +36,7 @@ interface FileState {
   jd: string | null;
   structure: string | null;
   candidates: string | null;
+  cvs: string | null; // Optional CVs file
 }
 
 interface FileNameState {
@@ -43,6 +44,7 @@ interface FileNameState {
   structure: string;
   problems: string;
   candidates: string;
+  cvs: string;
 }
 
 const initialWeights = {
@@ -58,12 +60,14 @@ export default function Analyzer() {
     jd: null,
     structure: null,
     candidates: null,
+    cvs: null,
   });
   const [fileNames, setFileNames] = useState<FileNameState>({
     jd: '',
     structure: '',
     problems: '',
     candidates: '',
+    cvs: '',
   });
 
   const [jdText, setJdText] = useState('');
@@ -78,7 +82,7 @@ export default function Analyzer() {
   const [report, setReport] = useState<FullReport | null>(null);
   const { toast } = useToast();
   
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, fileType: 'problems' | 'candidates') => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, fileType: 'problems' | 'candidates' | 'cvs') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -89,8 +93,8 @@ export default function Analyzer() {
         setProblemsJson(content);
         setFileNames(prev => ({...prev, problems: file.name}));
       } else {
-        setFileContents(prev => ({...prev, candidates: content}));
-        setFileNames(prev => ({...prev, candidates: file.name}));
+        setFileContents(prev => ({...prev, [fileType]: content}));
+        setFileNames(prev => ({...prev, [fileType]: file.name}));
       }
     };
     reader.readAsText(file);
@@ -139,7 +143,7 @@ export default function Analyzer() {
 
   const handleGenerateStructure = async () => {
     if (!problemsJson.trim()) {
-      toast({ variant: 'destructive', title: 'Missing Problems JSON', description: 'Please paste the JSON data for the problems.' });
+      toast({ variant: 'destructive', title: 'Missing Problems JSON', description: 'Please upload the problems JSON file.' });
       return;
     }
     setIsGeneratingStructure(true);
@@ -242,6 +246,7 @@ export default function Analyzer() {
         rubric,
         fileContents.structure!,
         fileContents.candidates!,
+        fileContents.cvs, // Pass optional CVs content
         { getAIInsights, getCvSignals }
       );
       setReport(fullReport);
@@ -264,26 +269,26 @@ export default function Analyzer() {
 
   const handleNewReport = () => {
     setReport(null);
-    setFileContents({ jd: null, structure: null, candidates: null });
-    setFileNames({ jd: '', structure: '', problems: '', candidates: ''});
+    setFileContents({ jd: null, structure: null, candidates: null, cvs: null });
+    setFileNames({ jd: '', structure: '', problems: '', candidates: '', cvs: '' });
     setJdText('');
     setRole('');
     setProblemsJson('');
     setRubricWeights(initialWeights);
   }
   
-  const FileInput = ({ id, label, onFileChange, fileName }: { id: string, label: string, onFileChange: (e: ChangeEvent<HTMLInputElement>) => void, fileName: string }) => (
+  const FileInput = ({ id, label, onFileChange, fileName, accept = '.json,application/json' }: { id: string, label: string, onFileChange: (e: ChangeEvent<HTMLInputElement>) => void, fileName: string, accept?: string }) => (
     <div>
         <Label htmlFor={id} className="cursor-pointer inline-block w-full">
             <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-lg hover:bg-muted transition-colors">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                     <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                     <p className="mb-1 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> {label}</p>
-                    <p className="text-xs text-muted-foreground">JSON file</p>
+                    <p className="text-xs text-muted-foreground">{accept.includes('json') ? 'JSON file' : 'CSV file'}</p>
                 </div>
             </div>
         </Label>
-        <Input id={id} type="file" className="hidden" accept=".json,application/json" onChange={onFileChange} />
+        <Input id={id} type="file" className="hidden" accept={accept} onChange={onFileChange} />
         {fileName && (
             <div className="mt-2 text-sm text-muted-foreground flex items-center gap-2">
                 <FileCheck2 className="h-4 w-4 text-green-600" />
@@ -417,6 +422,13 @@ export default function Analyzer() {
                               <p className="text-sm text-muted-foreground">Upload the raw candidate results JSON from your platform.</p>
                              <FileInput id="candidates-file" label="or drag and drop" onFileChange={(e) => handleFileChange(e, 'candidates')} fileName={fileNames.candidates} />
                           </div>
+
+                          {/* Optional CVs Input */}
+                          <div className="space-y-4">
+                             <Label className="text-base font-semibold">Candidate CVs (Optional)</Label>
+                              <p className="text-sm text-muted-foreground">Upload a CSV with columns: `name`, `email`, `cv_text` to enhance scoring.</p>
+                             <FileInput id="cvs-file" label="or drag and drop" onFileChange={(e) => handleFileChange(e, 'cvs')} fileName={fileNames.cvs} accept=".csv,text/csv" />
+                          </div>
                       </CardContent>
                     </Card>
                     <DialogContent>
@@ -459,5 +471,3 @@ export default function Analyzer() {
     </TooltipProvider>
   );
 }
-
-    

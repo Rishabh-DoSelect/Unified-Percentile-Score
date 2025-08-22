@@ -37,8 +37,13 @@ export interface Candidate {
   total_time_sec: number;
   attempts: number;
   proctoring_verdict?: 'Negligible' | 'Minor Violations' | 'Severe Violations' | string;
-  resume?: string; // This may be deprecated if not in the new format
   [key: string]: any; // for section scores like s1, s2, etc. and other raw columns
+}
+
+export interface CvData {
+  name: string;
+  email: string;
+  cv_text: string;
 }
 
 export interface CvSignal {
