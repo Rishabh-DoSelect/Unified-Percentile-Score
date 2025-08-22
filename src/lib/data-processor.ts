@@ -73,8 +73,11 @@ const calculateSkillAlignment = (
   jdSettings: JDSettings
 ): number => {
   let totalWeightedScore = 0;
-  
+
+  console.log(`\n\n--- Calculating Skill Alignment for ${candidate.name} (${candidate.candidate_id}) ---`);
+
   if (!jdSettings || !jdSettings.skill_weights) {
+    console.error("FATAL: JD settings or skill_weights are missing. Returning 0.", { jdSettings });
     return 0;
   }
   
@@ -84,11 +87,20 @@ const calculateSkillAlignment = (
       skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
   }
 
+  console.log("JD Skill Weights (lowercase):", skillWeightsLower);
+
   for (const section of testStructure) {
-    if (!section.skill) continue;
+    console.log(`\nProcessing section: ${section.section_name} (ID: ${section.section_id})`);
+    if (!section.skill) {
+        console.log(" -> Section has no skill. Skipping.");
+        continue;
+    };
 
     const skillLower = section.skill.toLowerCase();
     const jdWeight = skillWeightsLower[skillLower] || 0;
+
+    console.log(` -> Section Skill: '${section.skill}' (lowercase: '${skillLower}')`);
+    console.log(` -> JD Weight for this skill: ${jdWeight}`);
 
     if (jdWeight > 0) {
       const sectionScoreKey = section.section_id.toLowerCase();
@@ -96,21 +108,26 @@ const calculateSkillAlignment = (
       const normalizedScore = Math.max(0, Math.min(100, candidateScore)) / 100;
       const weightInSection = section.weight_in_section || 1.0;
 
-      totalWeightedScore += normalizedScore * weightInSection * jdWeight;
+      const sectionContribution = normalizedScore * weightInSection * jdWeight;
+      totalWeightedScore += sectionContribution;
+      
+      console.log(`  -> Section Score Key: '${sectionScoreKey}'`);
+      console.log(`  -> Candidate's Raw Score: ${candidateScore}`);
+      console.log(`  -> Normalized Score (0-1): ${normalizedScore}`);
+      console.log(`  -> Weight within Section: ${weightInSection}`);
+      console.log(`  -> CONTRIBUTION to total: ${normalizedScore} * ${weightInSection} * ${jdWeight} = ${sectionContribution}`);
+      console.log(`  -> CUMULATIVE totalWeightedScore: ${totalWeightedScore}`);
+    } else {
+        console.log(" -> Skipping score calculation as JD weight is 0.");
     }
   }
-
-  // The final score should be a sum of weighted scores, normalized by the sum of weights from the JD
-  // This ensures the final score remains between 0 and 1.
-  const totalJdWeight = Object.values(skillWeightsLower).reduce((sum, weight) => sum + weight, 0);
-
-  if (totalJdWeight === 0) return 0;
   
-  // The logic here assumes that the combination of weight_in_section and jd_weight creates a meaningful final score.
-  // A simpler interpretation is just summing the `normalizedScore * jdWeight`. Let's stick to the current logic as it's more nuanced.
+  const finalScore = Math.max(0, Math.min(1, totalWeightedScore));
+  console.log(`\n--- FINAL Skill Alignment Score for ${candidate.name}: ${finalScore} ---`);
   
-  return Math.max(0, Math.min(1, totalWeightedScore));
+  return finalScore;
 };
+
 
 const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
   if (!cv) return 0.5; // Neutral score if no CV data
@@ -425,3 +442,5 @@ export async function processCandidateData(
     executive_summary: finalRankedCandidates,
   };
 }
+
+    
