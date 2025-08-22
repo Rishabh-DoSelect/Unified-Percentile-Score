@@ -6,16 +6,9 @@ import { parseCv, type ParseCvInput, type ParseCvOutput } from '@/ai/flows/parse
 export async function getAIInsights(
   input: GenerateCandidateInsightsInput
 ): Promise<{ keyStrengths: string; keyRisks: string }> {
-  try {
-    const insights = await generateCandidateInsights(input);
-    return insights;
-  } catch (error) {
-    console.error('Error generating AI insights:', error);
-    return {
-      keyStrengths: 'Could not generate AI insights due to an error.',
-      keyRisks: 'Could not generate AI insights due to an error.',
-    };
-  }
+  // Re-throwing the error to be handled by the data processor,
+  // allowing for more graceful fallback logic.
+  return await generateCandidateInsights(input);
 }
 
 export async function getCvSignals(input: ParseCvInput): Promise<ParseCvOutput> {

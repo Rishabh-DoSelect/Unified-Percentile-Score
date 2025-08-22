@@ -214,7 +214,7 @@ const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendat
     });
 }
 
-const generateFallbackInsights = (candidate: Omit<RankedCandidate, 'key_strengths'|'key_risks'|'raw_candidate_data'|'raw_cv_data'>): { keyStrengths: string; keyRisks: string } => {
+const generateFallbackInsights = (candidate: Omit<RankedCandidate, 'key_strengths'|'key_risks'|'raw_candidate_data'|'raw_cv_data'>): { key_strengths: string; key_risks: string } => {
     const strengths = [];
     const risks = [];
 
@@ -239,8 +239,8 @@ const generateFallbackInsights = (candidate: Omit<RankedCandidate, 'key_strength
     }
 
     return {
-        keyStrengths: strengths.length > 0 ? strengths.join(' ') : 'No specific strengths automatically identified. Requires manual review.',
-        keyRisks: risks.length > 0 ? risks.join(' ') : 'No specific risks automatically identified. Requires manual review.',
+        key_strengths: strengths.length > 0 ? strengths.join(' ') : 'No specific strengths automatically identified. Requires manual review.',
+        key_risks: risks.length > 0 ? risks.join(' ') : 'No specific risks automatically identified. Requires manual review.',
     };
 };
 
@@ -316,17 +316,18 @@ export async function processCandidateData(
   const withRecs = addRecommendations(ranked, rubric);
   
   // 5. Generate AI Insights for candidate summary
-  const insightsPromises = withRecs.map(c => {
+  const insightsPromises = withRecs.map(async (c) => {
     const rawCandidate = candidates.find(rc => rc.candidate_id === c.candidate_id)!;
-    
-    // Only call AI if there is a resume to analyze
-    if (rawCandidate.resume && rawCandidate.resume.trim().length > 0) {
+    const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
+
+    try {
+      // Only call AI if there is a resume to analyze
+      if (rawCandidate.resume && rawCandidate.resume.trim().length > 0) {
         const testResults: Record<string, number> = {};
         testStructure.forEach(ts => {
-            testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
+          testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
         });
 
-        const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
         const cvSignalsForAI = cvData ? {
             projects: cvData.projects,
             internships: cvData.internships,
@@ -347,31 +348,30 @@ export async function processCandidateData(
             testResults,
             cvSignals: cvSignalsForAI,
         };
-        return actions.getAIInsights(aiInput);
+        const insights = await actions.getAIInsights(aiInput);
+        // Fallback for empty AI results
+        if (!insights.keyStrengths && !insights.keyRisks) {
+          const fallback = generateFallbackInsights(c);
+          return { key_strengths: fallback.key_strengths, key_risks: fallback.key_risks };
+        }
+        return { key_strengths: insights.keyStrengths, key_risks: insights.keyRisks };
+      }
+      // If no resume, generate fallback immediately.
+      return generateFallbackInsights(c);
+    } catch (error) {
+      console.error(`Error generating AI insights for ${c.candidate_id}:`, error);
+      // If the AI call fails for any reason, generate fallback insights.
+      return generateFallbackInsights(c);
     }
-    // Return a promise that resolves to fallback insights if no resume
-    return Promise.resolve(generateFallbackInsights(c));
   });
+
 
   const aiResults = await Promise.all(insightsPromises);
 
   const finalRankedCandidates: RankedCandidate[] = withRecs.map((c, i) => {
-      const insights = aiResults[i];
-      let finalInsights = {
-          key_strengths: insights.keyStrengths,
-          key_risks: insights.keyRisks,
-      };
-
-      // If AI returned empty strings, generate fallback
-      if (!finalInsights.key_strengths && !finalInsights.key_risks) {
-          const fallback = generateFallbackInsights(c);
-          finalInsights.key_strengths = fallback.keyStrengths;
-          finalInsights.key_risks = fallback.keyRisks;
-      }
-      
       return {
           ...c,
-          ...finalInsights,
+          ...aiResults[i],
           raw_candidate_data: candidates.find(rc => rc.candidate_id === c.candidate_id)!,
           raw_cv_data: cvSignals?.find(cv => cv.candidate_id === c.candidate_id)
       }
