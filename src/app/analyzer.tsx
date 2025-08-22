@@ -11,7 +11,7 @@ import { Dashboard } from '@/components/dashboard';
 import type { FullReport, Rubric } from '@/lib/types';
 import { processCandidateData } from '@/lib/data-processor';
 import { getAIInsights } from '@/app/actions';
-import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal } from 'lucide-react';
 import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
 import { Slider } from '@/components/ui/slider';
@@ -247,29 +247,23 @@ export default function Analyzer() {
                           <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
                           <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and signals." fileName={fileNames.candidates} />
                           <FileInput id="cv" label="CV Signals (Optional)" description="Optional CSV with candidate CV data." isOptional fileName={fileNames.cv} />
+                          
+                          <CollapsibleContent className="space-y-6 pt-6 border-t">
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-semibold">Customize Rubric Weights</h3>
+                                <p className="text-sm text-muted-foreground">Adjust the scoring weights. The total must be 100%.</p>
+                            </div>
+                            <RubricSlider label="Skill Alignment" category="skill_alignment" />
+                            <RubricSlider label="Knowledge Evidence" category="knowledge_evidence" />
+                            <RubricSlider label="Problem Solving" category="problem_solving" />
+                            <RubricSlider label="Efficiency & Consistency" category="efficiency_consistency" />
+                            <RubricSlider label="Integrity & Risk" category="integrity_risk" />
+                            <div className={`text-right font-bold ${totalWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                Total: {totalWeight}%
+                            </div>
+                          </CollapsibleContent>
                       </CardContent>
                     </Card>
-
-                    <CollapsibleContent>
-                        <Card className="shadow-lg mt-4">
-                            <CardHeader>
-                                <CardTitle className="text-2xl flex items-center gap-2"><SlidersHorizontal /> Customize Rubric Weights</CardTitle>
-                                <CardDescription>
-                                Adjust the scoring weights. The total must be 100%.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <RubricSlider label="Skill Alignment" category="skill_alignment" />
-                                <RubricSlider label="Knowledge Evidence" category="knowledge_evidence" />
-                                <RubricSlider label="Problem Solving" category="problem_solving" />
-                                <RubricSlider label="Efficiency & Consistency" category="efficiency_consistency" />
-                                <RubricSlider label="Integrity & Risk" category="integrity_risk" />
-                                <div className={`text-right font-bold ${totalWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                    Total: {totalWeight}%
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </CollapsibleContent>
                   </Collapsible>
                   
                   <Button onClick={handleGenerateReport} disabled={!allRequiredFilesUploaded || isLoading || totalWeight !== 100} className="w-full text-lg py-6 mt-8">
