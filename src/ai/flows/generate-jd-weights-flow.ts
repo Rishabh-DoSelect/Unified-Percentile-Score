@@ -11,7 +11,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import yaml from 'js-yaml';
 
 const GenerateJdWeightsInputSchema = z.object({
   jobDescription: z.string().describe('The full text of the job description.'),
@@ -21,15 +20,13 @@ const GenerateJdWeightsInputSchema = z.object({
 export type GenerateJdWeightsInput = z.infer<typeof GenerateJdWeightsInputSchema>;
 
 const GenerateJdWeightsOutputSchema = z.object({
-  role: z.string().describe('The job title or role provided as input.'),
-  skill_weights: z.record(z.number().min(0).max(1)).describe('A map of skill names to their assigned decimal weights, where each weight is between 0 and 1.'),
+  skill_weights_yaml: z.string().describe('A YAML formatted string containing the role and the skill weights. The weights must sum to 1.0.'),
 });
 export type GenerateJdWeightsOutput = z.infer<typeof GenerateJdWeightsOutputSchema>;
 
 export async function generateJdWeights(input: GenerateJdWeightsInput): Promise<string> {
   const result = await generateJdWeightsFlow(input);
-  // Convert the JSON object to a YAML string for the output.
-  return yaml.dump(result);
+  return result.skill_weights_yaml;
 }
 
 const prompt = ai.definePrompt({
@@ -50,7 +47,17 @@ Job Description:
 
 Available skills to weigh: {{{skills}}}
 
-Provide the output in the specified JSON format. The role should be "{{role}}". The skill_weights should be an object mapping skill strings to number weights.
+Provide the output as a YAML formatted string. The YAML should have two keys: "role" and "skill_weights".
+The "role" key's value should be "{{role}}".
+The "skill_weights" key's value should be a map of skill names to their weights.
+
+Example output format:
+role: "Data Scientist"
+skill_weights:
+  python: 0.4
+  sql: 0.3
+  statistics: 0.2
+  ml_theory: 0.1
 `,
 });
 
@@ -65,22 +72,6 @@ const generateJdWeightsFlow = ai.defineFlow(
     if (!output) {
       throw new Error('Failed to generate JD weights.');
     }
-
-    // Normalize the weights to ensure they sum to 1.0 if skill_weights is not empty
-    const weights = output.skill_weights;
-    const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-
-    if (totalWeight > 0) {
-      for (const skill in weights) {
-        weights[skill] = weights[skill] / totalWeight;
-        // Ensure weights are between 0 and 1 after normalization
-        weights[skill] = Math.max(0, Math.min(1, weights[skill]));
-      }
-    }
-    
-    // Ensure the role from input is passed through
-    output.role = input.role;
-
     return output;
   }
 );
