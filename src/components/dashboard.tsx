@@ -47,7 +47,7 @@ export function Dashboard({ report }: { report: FullReport }) {
     }
 
     if (typeof compareA === 'number' && typeof compareB === 'number') {
-        return sortDirection === 'asc' ? compareA - compareB : compareB - compareA;
+        return sortDirection === 'asc' ? compareA - compareB : compareB - a;
     }
     return 0;
   });
@@ -57,6 +57,10 @@ export function Dashboard({ report }: { report: FullReport }) {
     'Conditional': 'secondary',
     'Not Recommended': 'destructive',
   } as const;
+
+  const avgFinalScore = report.executive_summary.length > 0 
+    ? (report.executive_summary.reduce((acc, c) => acc + c.final_score, 0) / report.executive_summary.length * 100).toFixed(1)
+    : '0.0';
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
@@ -95,7 +99,7 @@ export function Dashboard({ report }: { report: FullReport }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(report.executive_summary.reduce((acc, c) => acc + c.final_score, 0) / report.executive_summary.length * 100).toFixed(1)}%
+              {avgFinalScore}%
             </div>
              <p className="text-xs text-muted-foreground">Across all candidates</p>
           </CardContent>

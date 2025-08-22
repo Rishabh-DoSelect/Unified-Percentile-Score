@@ -16,8 +16,9 @@ import type {
 } from '@/lib/types';
 
 // --- UTILITY FUNCTIONS ---
-const mean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+const mean = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 const stddev = (arr: number[]) => {
+  if (arr.length === 0) return 0;
   const arrMean = mean(arr);
   return Math.sqrt(mean(arr.map(n => (n - arrMean) ** 2)));
 };
@@ -109,7 +110,7 @@ const calculateEfficiencyConsistency = (
 ): number => {
   const allTimes = allCandidates.map(c => c.total_time_sec).sort((a, b) => a - b);
   const timeRank = allTimes.indexOf(candidate.total_time_sec) + 1;
-  const timePercentile = timeRank / allTimes.length;
+  const timePercentile = allTimes.length > 0 ? timeRank / allTimes.length : 0;
   const speedScore = 1 - timePercentile;
 
   const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id] ?? 0) / 100);
@@ -170,7 +171,7 @@ const rankAndPercentile = (candidatesScores: CandidateScores[], allCandidatesRaw
 
     return enrichedForSort.map((cs) => {
         const rank = ranks[cs.candidate_id];
-        const UPS_percentile = Math.round(100 * (K - rank + 1) / K * 100) / 100;
+        const UPS_percentile = K > 0 ? Math.round(100 * (K - rank + 1) / K * 100) / 100 : 0;
         return { ...cs, rank, UPS_percentile };
     });
 };
@@ -205,9 +206,20 @@ export async function processCandidateData(
   const rawCandidates = parseCsv<any>(candidatesCsv);
   const cvSignals = cvCsv ? parseCsv<CvSignal>(cvCsv) : null;
 
-  const candidates: Candidate[] = rawCandidates.map(rc => ({
+  const candidates: Candidate[] = rawCandidates.map((rc, index) => ({
       ...rc,
+      candidate_id: `CAND${String(index + 1).padStart(3, '0')}`,
+      name: rc.Name,
       total_time_sec: parseTimeTaken(rc['Time Taken']),
+      attempts: 1, // Defaulting to 1 as it's not in the new CSV
+      plagiarism_score: (typeof rc['Plagiarism Status'] === 'string' && rc['Plagiarism Status'].toLowerCase() === 'plagiarised') ? 1.0 : 0.0,
+      proctoring_flags: (typeof rc['Proctoring Verdict'] === 'string' && rc['Proctoring Verdict'].toLowerCase().includes('violation')) ? 1 : 0,
+      S1: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
+      S2: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
+      S3: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
+      S4: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
+      S5: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
+      S6: rc['Candidate Total Score (Computed From The Scores Of Best Attempts)'],
   }));
   
   // 2. Score each candidate
