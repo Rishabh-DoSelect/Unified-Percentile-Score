@@ -20,7 +20,7 @@ const GenerateJdWeightsInputSchema = z.object({
 export type GenerateJdWeightsInput = z.infer<typeof GenerateJdWeightsInputSchema>;
 
 const GenerateJdWeightsOutputSchema = z.object({
-  role: z.string().describe('The job title or role extracted from the job description.'),
+  role: z.string().describe('The job title or role provided as input.'),
   skill_weights: z.record(z.number().min(0).max(1)).describe('A map of skill names to their assigned decimal weights, where each weight is between 0 and 1.'),
 });
 export type GenerateJdWeightsOutput = z.infer<typeof GenerateJdWeightsOutputSchema>;
@@ -49,7 +49,7 @@ Job Description:
 
 Available skills to weigh: {{{skills}}}
 
-Provide the output in the specified JSON format. The skill_weights should be an object mapping skill strings to number weights.
+Provide the output in the specified JSON format. The role should be "{{role}}". The skill_weights should be an object mapping skill strings to number weights.
 `,
 });
 
@@ -77,6 +77,9 @@ const generateJdWeightsFlow = ai.defineFlow(
       }
     }
     
+    // Ensure the role from input is passed through
+    output.role = input.role;
+
     return output;
   }
 );

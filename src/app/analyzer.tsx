@@ -104,7 +104,7 @@ export default function Analyzer() {
         const testStructure = parseCsv<TestStructure>(fileContents.structure);
         const skills = [...new Set(testStructure.map(s => s.skill))];
         
-        const generatedYaml = await generateJdFromText({ jobDescription: jdText, skills }, role);
+        const generatedYaml = await generateJdFromText({ jobDescription: jdText, skills, role });
         
         setFileContents(prev => ({...prev, jd: generatedYaml}));
         setFileNames(prev => ({...prev, jd: 'jd-generated.yaml'}));

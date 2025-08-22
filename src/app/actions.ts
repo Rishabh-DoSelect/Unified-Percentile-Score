@@ -9,7 +9,13 @@ export async function getAIInsights(
 ): Promise<{ keyStrengths: string; keyRisks: string }> {
   // Re-throwing the error to be handled by the data processor,
   // allowing for more graceful fallback logic.
-  return await generateCandidateInsights(input);
+  try {
+    return await generateCandidateInsights(input);
+  } catch(e) {
+    console.error(`AI insight generation failed for ${input.candidateId}:`, e);
+    // Re-throw the error to be caught by the caller
+    throw e;
+  }
 }
 
 export async function getCvSignals(input: ParseCvInput): Promise<ParseCvOutput> {
@@ -28,8 +34,7 @@ export async function getCvSignals(input: ParseCvInput): Promise<ParseCvOutput> 
     }
 }
 
-export async function generateJdFromText(input: Omit<GenerateJdWeightsInput, 'role'>, role: string): Promise<string> {
-    const fullInput: GenerateJdWeightsInput = { ...input, role };
-    const yamlResult = await generateJdWeights(fullInput);
+export async function generateJdFromText(input: GenerateJdWeightsInput): Promise<string> {
+    const yamlResult = await generateJdWeights(input);
     return yamlResult;
 }
