@@ -1,6 +1,7 @@
 
 export interface JDSettings {
   role: string;
+  jobDescription?: string;
   skill_weights: Record<string, number>;
 }
 
@@ -31,7 +32,7 @@ export interface Candidate {
   name: string;
   total_time_sec: number;
   attempts: number;
-  proctoring_verdict?: 'Negligible' | 'Minor Violations' | 'Severe Violations';
+  proctoring_verdict?: 'Negligible' | 'Minor Violations' | 'Severe Violations' | string;
   resume?: string; // Optional URL to the candidate's resume
   [key: string]: any; // for section scores like S1, S2, etc. and other raw columns
 }

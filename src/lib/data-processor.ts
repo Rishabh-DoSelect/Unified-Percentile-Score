@@ -75,19 +75,21 @@ const calculateSkillAlignment = (
   const skillScores: Record<string, { scores: number[], weights: number[] }> = {};
 
   for (const struct of testStructure) {
+    if (!struct.skill) continue; // Skip if skill is not defined
     const skill = struct.skill.toLowerCase();
     if (!skillScores[skill]) skillScores[skill] = { scores: [], weights: [] };
     
-    const sectionScore = candidate[struct.section_id.toLowerCase()] ?? 0;
+    const sectionScoreKey = struct.section_id.toLowerCase();
+    const sectionScore = candidate[sectionScoreKey] ?? 0;
     const sectionNormalized = Math.max(0, Math.min(100, sectionScore)) / 100;
     
     skillScores[skill].scores.push(sectionNormalized);
-    skillScores[skill].weights.push(struct.weight_in_section);
+    skillScores[skill].weights.push(struct.weight_in_section || 1.0); // Default weight if missing
   }
   
   let jdWeightedSkillAlignment = 0;
   if (jdSettings && jdSettings.skill_weights) {
-      // Create a case-insensitive map of skill weights
+      // Create a case-insensitive map of skill weights from the JD
       const skillWeightsLower: Record<string, number> = {};
       for (const skill in jdSettings.skill_weights) {
           skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
@@ -105,7 +107,6 @@ const calculateSkillAlignment = (
             }
         }
         
-        // Use the case-insensitive map for lookup
         const jdWeight = skillWeightsLower[skill] || 0;
         jdWeightedSkillAlignment += avgSkillScore * jdWeight;
       }
@@ -118,7 +119,7 @@ const calculateSkillAlignment = (
 const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
   if (!cv) return 0.5; // Neutral score if no CV data
 
-  const keywordDict = ["python", "pandas", "numpy", "scikit-learn", "ml", "django", "sql", "tensorflow", "pytorch", "aws", "gcp", "azure"];
+  const keywordDict = ["python", "pandas", "numpy", "scikit-learn", "ml", "django", "sql", "tensorflow", "pytorch", "aws", "gcp", "azure", "java", "spring", "react"];
   const projectsScore = Math.min(cv.projects || 0, 3) / 3;
   const internshipsScore = Math.min(cv.internships || 0, 2) / 2;
   const githubScore = cv.github ? 1 : 0;
@@ -131,9 +132,15 @@ const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
 };
 
 const calculateProblemSolving = (candidate: Candidate, testStructure: TestStructure[]): number => {
-  const sectionIds = Object.keys(candidate).filter(key => key.startsWith('s') && !isNaN(parseInt(key.substring(1))));
+  const sectionIds = testStructure.map(s => s.section_id.toLowerCase());
   if (sectionIds.length === 0) return 0.5;
-  const sectionScoresNormalized = sectionIds.map(id => (candidate[id] ?? 0) / 100);
+
+  const sectionScoresNormalized = sectionIds
+    .map(id => (candidate[id] ?? 0) / 100)
+    .filter(score => score !== undefined);
+
+  if (sectionScoresNormalized.length === 0) return 0.5;
+
   const balanceScore = 1 - stddev(sectionScoresNormalized);
   const persistenceScore = 1 - (Math.min(candidate.attempts || 1, 8) / 8); 
   
@@ -144,6 +151,7 @@ const calculateProblemSolving = (candidate: Candidate, testStructure: TestStruct
 const calculateEfficiencyConsistency = (
   candidate: Candidate,
   allCandidates: Candidate[],
+  testStructure: TestStructure[]
 ): number => {
   const allTimes = allCandidates.map(c => c.total_time_sec).filter(t => t > 0).sort((a, b) => a - b);
   const candidateTime = candidate.total_time_sec;
@@ -154,8 +162,12 @@ const calculateEfficiencyConsistency = (
       speedScore = 1 - percentile;
   }
 
-  const sectionIds = Object.keys(candidate).filter(key => key.startsWith('s') && !isNaN(parseInt(key.substring(1))));
-  const sectionScoresNormalized = sectionIds.map(id => (candidate[id] ?? 0) / 100);
+  const sectionIds = testStructure.map(s => s.section_id.toLowerCase());
+   const sectionScoresNormalized = sectionIds
+    .map(id => (candidate[id] ?? 0) / 100)
+    .filter(score => score !== undefined);
+
+  if (sectionScoresNormalized.length === 0) return 0.5;
   const consistencyScore = 1 - stddev(sectionScoresNormalized);
 
   const score = 0.6 * speedScore + 0.4 * consistencyScore;
@@ -178,8 +190,9 @@ const calculateIntegrityRisk = (candidate: Candidate): number => {
           break;
   }
   
+  // The risk is the penalty itself. The score is the inverse of risk.
   const risk = proctorPenalty;
-  return 1 - Math.max(0, Math.min(1, risk)); // Invert risk to get score
+  return 1 - Math.max(0, Math.min(1, risk)); 
 };
 
 const calculateFinalScore = (scores: Omit<CandidateScores, 'final_score'|'name'|'candidate_id'>, rubric: Rubric): number => {
@@ -256,7 +269,7 @@ const generateFallbackInsights = (candidate: Omit<RankedCandidate, 'key_strength
     if (candidate.knowledge_evidence < 0.5) {
         risks.push('Limited evidence of practical application or prior experience from CV.');
     }
-    if (candidate.integrity_risk < 0.8) {
+    if (candidate.integrity_risk < (1 - 0.8)) { // Corresponds to red_flag_integrity_max
         risks.push('Possible integrity concerns due to proctoring flags.');
     }
 
@@ -321,7 +334,7 @@ export async function processCandidateData(
       skill_alignment: calculateSkillAlignment(c, testStructure, jdSettings),
       knowledge_evidence: calculateKnowledgeEvidence(cv),
       problem_solving: calculateProblemSolving(c, testStructure),
-      efficiency_consistency: calculateEfficiencyConsistency(c, candidates),
+      efficiency_consistency: calculateEfficiencyConsistency(c, candidates, testStructure),
       integrity_risk: calculateIntegrityRisk(c),
     };
     return {
@@ -347,14 +360,16 @@ export async function processCandidateData(
       if (rawCandidate.resume && rawCandidate.resume.trim().length > 0) {
         const testResults: Record<string, number> = {};
         testStructure.forEach(ts => {
-          testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
+          if (ts && ts.section_id) {
+            testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
+          }
         });
 
         const cvSignalsForAI = cvData ? {
             projects: cvData.projects,
             internships: cvData.internships,
             github: cvData.github,
-            keywords: cvData.keywords.join(', ')
+            keywords: cvData.keywords
         } : undefined;
 
         const aiInput: GenerateCandidateInsightsInput = {

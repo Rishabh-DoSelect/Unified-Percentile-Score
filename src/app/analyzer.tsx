@@ -8,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dashboard } from '@/components/dashboard';
-import type { FullReport, Rubric, TestStructure } from '@/lib/types';
+import type { FullReport, JDSettings, Rubric, TestStructure } from '@/lib/types';
 import { parseCsv, processCandidateData } from '@/lib/data-processor';
-import { generateJdFromText, getAIInsights, getCvSignals } from '@/app/actions';
+import { generateJdFromText, getAIInsights, getCvSignals, generateTestStructureFromJSON } from '@/app/actions';
 import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal, Wand2, Download } from 'lucide-react';
 import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
@@ -68,12 +68,15 @@ export default function Analyzer() {
   const [role, setRole] = useState('');
   const [isGeneratingJd, setIsGeneratingJd] = useState(false);
 
+  const [problemsJson, setProblemsJson] = useState('');
+  const [isGeneratingStructure, setIsGeneratingStructure] = useState(false);
+
   const [rubricWeights, setRubricWeights] = useState(initialWeights);
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<FullReport | null>(null);
   const { toast } = useToast();
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: keyof Omit<FileState, 'jd'>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: keyof Omit<FileState, 'jd' | 'structure'>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -87,7 +90,7 @@ export default function Analyzer() {
 
   const handleGenerateJd = async () => {
     if (!fileContents.structure) {
-        toast({ variant: 'destructive', title: 'Missing Test Structure', description: 'Please upload the test structure CSV first to extract skills.' });
+        toast({ variant: 'destructive', title: 'Missing Test Structure', description: 'Please upload or generate the test structure CSV first to extract skills.' });
         return;
     }
     if (!jdText.trim()) {
@@ -102,23 +105,51 @@ export default function Analyzer() {
     setIsGeneratingJd(true);
     try {
         const testStructure = parseCsv<TestStructure>(fileContents.structure);
+        if (!testStructure || testStructure.length === 0) {
+            throw new Error("Test structure is empty or invalid.");
+        }
         const skills = [...new Set(testStructure.map(s => s.skill))];
         
-        const generatedYaml = await generateJdFromText({ jobDescription: jdText, skills, role });
+        const jdSettings: JDSettings = {
+          role,
+          skill_weights: skills.reduce((acc, skill) => ({...acc, [skill]: 0}), {}) // Placeholder, AI will generate
+        }
+        
+        const generatedYaml = await generateJdFromText({ jobDescription: jdText, ...jdSettings });
         
         setFileContents(prev => ({...prev, jd: generatedYaml}));
         setFileNames(prev => ({...prev, jd: 'jd-generated.yaml'}));
         toast({ title: 'Success!', description: 'JD Skill Weights have been generated and loaded.' });
     } catch (error) {
         console.error('Error generating JD:', error);
-        toast({ variant: 'destructive', title: 'Generation Failed', description: 'Could not generate JD weights from the provided text.' });
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        toast({ variant: 'destructive', title: 'Generation Failed', description: `Could not generate JD weights. ${errorMessage}` });
     } finally {
         setIsGeneratingJd(false);
     }
   }
 
-  const handleDownload = (content: string, fileName: string) => {
-    const blob = new Blob([content], { type: 'text/yaml' });
+  const handleGenerateStructure = async () => {
+    if (!problemsJson.trim()) {
+      toast({ variant: 'destructive', title: 'Missing Problems JSON', description: 'Please paste the JSON data for the problems.' });
+      return;
+    }
+    setIsGeneratingStructure(true);
+    try {
+      const generatedCsv = await generateTestStructureFromJSON({ problemsJson });
+      setFileContents(prev => ({ ...prev, structure: generatedCsv }));
+      setFileNames(prev => ({ ...prev, structure: 'structure-generated.csv' }));
+      toast({ title: 'Success!', description: 'Test Structure CSV has been generated and loaded.' });
+    } catch (error) {
+      console.error('Error generating test structure:', error);
+      toast({ variant: 'destructive', title: 'Generation Failed', description: 'Could not generate Test Structure from the provided JSON.' });
+    } finally {
+      setIsGeneratingStructure(false);
+    }
+  };
+
+  const handleDownload = (content: string, fileName: string, type: 'text/yaml' | 'text/csv' = 'text/yaml') => {
+    const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -225,10 +256,11 @@ export default function Analyzer() {
     setFileNames({ jd: '', structure: '', candidates: ''});
     setJdText('');
     setRole('');
+    setProblemsJson('');
     setRubricWeights(initialWeights);
   }
 
-  const FileInput = ({ id, label, description, isOptional = false, fileName }: { id: keyof Omit<FileState, 'jd'>, label: string, description: string, isOptional?: boolean, fileName: string }) => (
+  const FileInput = ({ id, label, description, isOptional = false, fileName }: { id: keyof Omit<FileState, 'jd' | 'structure'>, label: string, description: string, isOptional?: boolean, fileName: string }) => (
     <div className="space-y-2">
       <Label htmlFor={id} className="text-base font-semibold">{label} {!isOptional && <span className="text-destructive">*</span>}</Label>
       <p className="text-sm text-muted-foreground">{description}</p>
@@ -296,6 +328,7 @@ export default function Analyzer() {
                           </Tooltip>
                       </CardHeader>
                       <CardContent className="space-y-8">
+                          {/* JD Generation */}
                           <div className="space-y-4">
                              <Label className="text-base font-semibold">Job Description <span className="text-destructive">*</span></Label>
                              <p className="text-sm text-muted-foreground">Paste the job description text below to generate skill weights.</p>
@@ -325,14 +358,48 @@ export default function Analyzer() {
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                <p>Download Generated File</p>
+                                                <p>Download Generated JD YAML</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </div>
                                 )}
                               </div>
                           </div>
-                          <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
+
+                          {/* Test Structure Generation */}
+                           <div className="space-y-4">
+                             <Label className="text-base font-semibold">Test Structure <span className="text-destructive">*</span></Label>
+                             <p className="text-sm text-muted-foreground">Paste the problems JSON from your platform to generate the test structure.</p>
+                             <Textarea 
+                                placeholder='[{"problem_slug": "q1", ...}]' 
+                                value={problemsJson} 
+                                onChange={(e) => setProblemsJson(e.target.value)}
+                                className="min-h-[150px] font-mono text-xs"
+                             />
+                              <div className="flex items-center justify-between">
+                                <Button onClick={handleGenerateStructure} disabled={isGeneratingStructure}>
+                                    {isGeneratingStructure ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                    Generate Test Structure
+                                </Button>
+                                {fileNames.structure && (
+                                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <FileCheck2 className="h-4 w-4 text-green-600" />
+                                        <span>{fileNames.structure}</span>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(fileContents.structure!, fileNames.structure, 'text/csv')}>
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Download Generated Structure CSV</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                )}
+                              </div>
+                          </div>
+
                           <FileInput id="candidates" label="Candidate Results" description="CSV with scores and (optionally) a 'resume' column containing the full text of the candidate's CV." fileName={fileNames.candidates} />
                       </CardContent>
                     </Card>
