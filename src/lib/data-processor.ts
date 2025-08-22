@@ -121,7 +121,9 @@ const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
 };
 
 const calculateProblemSolving = (candidate: Candidate, testStructure: TestStructure[]): number => {
-  const sectionScoresNormalized = testStructure.map(s => (candidate[s.section_id.toLowerCase()] ?? 0) / 100);
+  const sectionIds = Object.keys(candidate).filter(key => key.startsWith('s') && !isNaN(parseInt(key.substring(1))));
+  if (sectionIds.length === 0) return 0.5;
+  const sectionScoresNormalized = sectionIds.map(id => (candidate[id] ?? 0) / 100);
   const balanceScore = 1 - stddev(sectionScoresNormalized);
   const persistenceScore = 1 - (Math.min(candidate.attempts || 1, 8) / 8); 
   
@@ -212,6 +214,36 @@ const addRecommendations = (rankedCandidates: Omit<RankedCandidate, 'recommendat
     });
 }
 
+const generateFallbackInsights = (candidate: Omit<RankedCandidate, 'key_strengths'|'key_risks'|'raw_candidate_data'|'raw_cv_data'>): { keyStrengths: string; keyRisks: string } => {
+    const strengths = [];
+    const risks = [];
+
+    if (candidate.skill_alignment > 0.75) {
+        strengths.push('Excellent alignment with required job skills based on test performance.');
+    }
+    if (candidate.knowledge_evidence > 0.75) {
+        strengths.push('Strong evidence of practical knowledge from projects and experience.');
+    }
+    if (candidate.problem_solving > 0.7) {
+        strengths.push('Good problem-solving and persistence demonstrated in test attempts.');
+    }
+
+    if (candidate.skill_alignment < 0.5) {
+        risks.push('Potential gap in required job skills based on test performance.');
+    }
+    if (candidate.knowledge_evidence < 0.5) {
+        risks.push('Limited evidence of practical application or prior experience from CV.');
+    }
+    if (candidate.integrity_risk < 0.8) {
+        risks.push('Possible integrity concerns due to plagiarism or proctoring flags.');
+    }
+
+    return {
+        keyStrengths: strengths.length > 0 ? strengths.join(' ') : 'No specific strengths automatically identified. Requires manual review.',
+        keyRisks: risks.length > 0 ? risks.join(' ') : 'No specific risks automatically identified. Requires manual review.',
+    };
+};
+
 
 // --- MAIN PIPELINE ---
 
@@ -285,44 +317,65 @@ export async function processCandidateData(
   
   // 5. Generate AI Insights for candidate summary
   const insightsPromises = withRecs.map(c => {
-    const testResults: Record<string, number> = {};
     const rawCandidate = candidates.find(rc => rc.candidate_id === c.candidate_id)!;
-    testStructure.forEach(ts => {
-        testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
-    });
+    
+    // Only call AI if there is a resume to analyze
+    if (rawCandidate.resume && rawCandidate.resume.trim().length > 0) {
+        const testResults: Record<string, number> = {};
+        testStructure.forEach(ts => {
+            testResults[ts.section_id] = rawCandidate[ts.section_id.toLowerCase()] ?? 0;
+        });
 
-    const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
-     const cvSignalsForAI = cvData ? {
-        projects: cvData.projects,
-        internships: cvData.internships,
-        github: cvData.github,
-        keywords: cvData.keywords.join(', ')
-    } : undefined;
+        const cvData = cvSignals?.find(cv => cv.candidate_id === c.candidate_id);
+        const cvSignalsForAI = cvData ? {
+            projects: cvData.projects,
+            internships: cvData.internships,
+            github: cvData.github,
+            keywords: cvData.keywords.join(', ')
+        } : undefined;
 
-    const aiInput: GenerateCandidateInsightsInput = {
-        candidateId: c.candidate_id,
-        name: c.name,
-        skillAlignment: c.skill_alignment,
-        knowledgeEvidence: c.knowledge_evidence,
-        problemSolving: c.problem_solving,
-        efficiencyConsistency: c.efficiency_consistency,
-        integrityRisk: c.integrity_risk,
-        finalScore: c.final_score,
-        UPSErrorcentile: c.UPS_percentile,
-        testResults,
-        cvSignals: cvSignalsForAI,
-    };
-    return actions.getAIInsights(aiInput);
+        const aiInput: GenerateCandidateInsightsInput = {
+            candidateId: c.candidate_id,
+            name: c.name,
+            skillAlignment: c.skill_alignment,
+            knowledgeEvidence: c.knowledge_evidence,
+            problemSolving: c.problem_solving,
+            efficiencyConsistency: c.efficiency_consistency,
+            integrityRisk: c.integrity_risk,
+            finalScore: c.final_score,
+            UPSErrorcentile: c.UPS_percentile,
+            testResults,
+            cvSignals: cvSignalsForAI,
+        };
+        return actions.getAIInsights(aiInput);
+    }
+    // Return a promise that resolves to fallback insights if no resume
+    return Promise.resolve(generateFallbackInsights(c));
   });
 
   const aiResults = await Promise.all(insightsPromises);
 
-  const finalRankedCandidates: RankedCandidate[] = withRecs.map((c, i) => ({
-      ...c,
-      ...aiResults[i],
-      raw_candidate_data: candidates.find(rc => rc.candidate_id === c.candidate_id)!,
-      raw_cv_data: cvSignals?.find(cv => cv.candidate_id === c.candidate_id)
-  }));
+  const finalRankedCandidates: RankedCandidate[] = withRecs.map((c, i) => {
+      const insights = aiResults[i];
+      let finalInsights = {
+          key_strengths: insights.keyStrengths,
+          key_risks: insights.keyRisks,
+      };
+
+      // If AI returned empty strings, generate fallback
+      if (!finalInsights.key_strengths && !finalInsights.key_risks) {
+          const fallback = generateFallbackInsights(c);
+          finalInsights.key_strengths = fallback.keyStrengths;
+          finalInsights.key_risks = fallback.keyRisks;
+      }
+      
+      return {
+          ...c,
+          ...finalInsights,
+          raw_candidate_data: candidates.find(rc => rc.candidate_id === c.candidate_id)!,
+          raw_cv_data: cvSignals?.find(cv => cv.candidate_id === c.candidate_id)
+      }
+  });
 
 
   // 6. Assemble Final Report

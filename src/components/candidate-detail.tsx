@@ -75,11 +75,11 @@ export function CandidateDetail({ candidate, open, onOpenChange }: CandidateDeta
                 <CardContent className="space-y-4">
                      <div className="rounded-lg border bg-background p-4">
                         <h4 className="flex items-center gap-2 font-semibold text-green-600"><ArrowUpRight className="h-5 w-5" /> Key Strengths</h4>
-                        <p className="mt-2 text-sm text-foreground/80">{candidate.key_strengths}</p>
+                        <p className="mt-2 text-sm text-foreground/80">{candidate.key_strengths || 'No specific strengths identified.'}</p>
                     </div>
                      <div className="rounded-lg border bg-background p-4">
                         <h4 className="flex items-center gap-2 font-semibold text-red-600"><ArrowDownRight className="h-5 w-5" /> Key Risks</h4>
-                        <p className="mt-2 text-sm text-foreground/80">{candidate.key_risks}</p>
+                        <p className="mt-2 text-sm text-foreground/80">{candidate.key_risks || 'No specific risks identified.'}</p>
                     </div>
                 </CardContent>
             </Card>
