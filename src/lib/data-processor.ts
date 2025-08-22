@@ -104,7 +104,23 @@ const transformPlatformData = (platformData: PlatformData[], testStructure: Test
                 score = record.run_details.score;
             } else if (record.mcq_choice && section.correct_answer) {
                 // MCQ questions need score calculation
-                const isCorrect = JSON.stringify(record.mcq_choice.sort()) === JSON.stringify(section.correct_answer.sort());
+                const candidateChoice = Array.isArray(record.mcq_choice) ? record.mcq_choice : [record.mcq_choice];
+                let correctAnswer = section.correct_answer;
+                
+                // If correct answer from CSV is a string, try to parse it as JSON
+                if (typeof correctAnswer === 'string') {
+                    try {
+                        correctAnswer = JSON.parse(correctAnswer);
+                    } catch (e) {
+                         // It might just be a simple string representation e.g., "3" vs ["3"]
+                         correctAnswer = [String(correctAnswer)];
+                    }
+                }
+                if (!Array.isArray(correctAnswer)) {
+                    correctAnswer = [correctAnswer];
+                }
+
+                const isCorrect = JSON.stringify(candidateChoice.sort()) === JSON.stringify(correctAnswer.sort());
                 score = isCorrect ? section.problem_score : 0;
             }
             
@@ -157,9 +173,11 @@ const calculateSkillAlignment = (
       const candidateScore = candidate[sectionScoreKey] ?? 0;
       
       const maxScore = section.problem_score || 100;
-      const normalizedScore = candidateScore / maxScore;
+      // Handle division by zero
+      const normalizedScore = maxScore > 0 ? candidateScore / maxScore : 0;
 
-      const weightInSection = section.weight_in_section || 1.0;
+      // weight_in_section is deprecated but kept for compatibility. We assume 1.0.
+      const weightInSection = section.weight_in_section || 1.0; 
       const sectionContribution = normalizedScore * weightInSection * jdWeight;
       totalWeightedScore += sectionContribution;
     }
@@ -194,7 +212,7 @@ const calculateProblemSolving = (candidate: Candidate, testStructure: TestStruct
         const section = testStructure.find(s => s.section_id.toLowerCase() === id);
         if (!section) return undefined;
         const maxScore = section.problem_score || 100;
-        return (candidate[id] ?? 0) / maxScore;
+        return (candidate[id] ?? 0) / (maxScore > 0 ? maxScore : 100);
     })
     .filter(score => score !== undefined) as number[];
 
@@ -222,7 +240,7 @@ const calculateEfficiencyConsistency = (
         const section = testStructure.find(s => s.section_id.toLowerCase() === id);
         if (!section) return undefined;
         const maxScore = section.problem_score || 100;
-        return (candidate[id] ?? 0) / maxScore;
+        return (candidate[id] ?? 0) / (maxScore > 0 ? maxScore : 100);
     })
     .filter(score => score !== undefined) as number[];
 
@@ -360,7 +378,7 @@ export async function processCandidateData(
   
   // 3. Parse CVs from text column (if it exists)
   // This part needs adaptation if CV data is no longer provided in the same way.
-  // For now, we assume it's not present in the new JSON format.
+  // For now, we assume it's not present in the new format.
   const cvSignals: CvSignal[] = candidates.map(c => ({
       candidate_id: c.candidate_id,
       projects: 0,
