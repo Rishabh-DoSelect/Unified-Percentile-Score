@@ -11,7 +11,7 @@ import { Dashboard } from '@/components/dashboard';
 import type { FullReport, Rubric, TestStructure } from '@/lib/types';
 import { parseCsv, processCandidateData } from '@/lib/data-processor';
 import { generateJdFromText, getAIInsights, getCvSignals } from '@/app/actions';
-import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal, Wand2 } from 'lucide-react';
+import { FileCheck2, FileText, Loader2, Upload, SlidersHorizontal, Wand2, Download } from 'lucide-react';
 import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
 import { Slider } from '@/components/ui/slider';
@@ -116,6 +116,18 @@ export default function Analyzer() {
         setIsGeneratingJd(false);
     }
   }
+
+  const handleDownload = (content: string, fileName: string) => {
+    const blob = new Blob([content], { type: 'text/yaml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
 
   const handleWeightChange = (category: keyof typeof rubricWeights, value: number) => {
     const otherCategoriesTotal = Object.entries(rubricWeights)
@@ -302,7 +314,22 @@ export default function Analyzer() {
                                     {isGeneratingJd ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                                     Generate Skill Weights
                                 </Button>
-                                {fileNames.jd && <div className="text-sm text-muted-foreground flex items-center gap-2"><FileCheck2 className="h-4 w-4 text-green-600" /> {fileNames.jd}</div>}
+                                {fileNames.jd && (
+                                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                        <FileCheck2 className="h-4 w-4 text-green-600" />
+                                        <span>{fileNames.jd}</span>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(fileContents.jd!, fileNames.jd)}>
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Download Generated File</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                )}
                               </div>
                           </div>
                           <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />

@@ -20,8 +20,11 @@ const GenerateJdWeightsInputSchema = z.object({
 export type GenerateJdWeightsInput = z.infer<typeof GenerateJdWeightsInputSchema>;
 
 const GenerateJdWeightsOutputSchema = z.object({
-  role: z.string(),
-  skill_weights: z.record(z.number()),
+  role: z.string().describe('The job title or role extracted from the job description.'),
+  skill_weights: z.array(z.object({
+    skill: z.string().describe('The name of the skill.'),
+    weight: z.number().min(0).max(1).describe('A decimal weight between 0 and 1 representing the importance of the skill.'),
+  })).describe('An array of objects, each representing a skill and its assigned weight.'),
 });
 export type GenerateJdWeightsOutput = z.infer<typeof GenerateJdWeightsOutputSchema>;
 
@@ -64,12 +67,14 @@ const generateJdWeightsFlow = ai.defineFlow(
     if (!output) {
       throw new Error('Failed to generate JD weights.');
     }
-    
-    // Normalize the weights to ensure they sum to 1.0
-    const totalWeight = Object.values(output.skill_weights).reduce((sum, weight) => sum + weight, 0);
+
+    // Normalize the weights to ensure they sum to 1.0 if skill_weights is not empty
+    const totalWeight = output.skill_weights.reduce((sum, skill) => sum + skill.weight, 0);
     if (totalWeight > 0) {
-        for (const skill in output.skill_weights) {
-            output.skill_weights[skill] = output.skill_weights[skill] / totalWeight;
+        for (const skill of output.skill_weights) {
+            skill.weight = skill.weight / totalWeight;
+            // Ensure weights are between 0 and 1 after normalization
+            skill.weight = Math.max(0, Math.min(1, skill.weight));
         }
     }
     
