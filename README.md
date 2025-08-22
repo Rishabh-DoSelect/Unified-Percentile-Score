@@ -4,6 +4,19 @@ This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
 
+## AI Cost Breakdown
+
+Here is a table detailing the estimated AI costs for using this application. These costs are based on Google's Gemini models and are calculated per 1,000 characters.
+
+| AI Task                           | Trigger                                   | Key Cost Driver                                 | Estimated Cost per Unit (Illustrative)                        | Notes                                                                                             |
+| :-------------------------------- | :---------------------------------------- | :---------------------------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------ |
+| **JD Skill Weight Generation**    | Click "Generate Skill Weights"            | Length of the pasted Job Description.           | ~$0.0005 per JD                                               | A one-time cost per report. Relatively low.                                                       |
+| **Test Structure Generation**     | Click "Generate Test Structure"           | Number of problems in the uploaded JSON.        | ~$0.001 per 10 problems                                       | A one-time cost per report. Cost depends on the complexity of the test.                           |
+| **CV Parsing (Optional)**         | "Generate Report" (if CV file is uploaded) | Number of candidates & length of each CV.       | ~$0.0007 per candidate                                        | This is a major variable cost. Scales directly with the number of candidates with CVs.            |
+| **Candidate Insight Generation**  | Click "Generate Report"                   | Number of candidates & test/CV data complexity. | ~$0.001 per candidate                                       | **This is the primary cost driver of the application.** It runs for every candidate in the dataset. |
+
+**Disclaimer:** *These are illustrative estimates. Actual costs may vary based on the specific length and complexity of your input data and the current pricing of the underlying AI models.*
+
 ## Presentation Deck Outline
 
 Here is a clear and logical table structure you can use for a presentation deck to introduce and explain this application to stakeholders.
