@@ -1,0 +1,318 @@
+[{"correct_answer": [],
+  "insight_tags": u"Python Basics",
+  "level": u"EAS",
+  "option_1": "",
+  "option_2": "",
+  "option_3": "",
+  "option_4": "",
+  "penalty": 0,
+  "private_tags": "",
+  "problem_decription": u"Problem StatementWrite a program that takes a list of values X (i.e., a number, string, etc) and a list of values A, and print true for each index in A if it is a m
+ember of X, and false otherwise.Note that this is exactly what the in operator does, but for the sake of the exercise, you should pretend Python did not have this operator.Input FormatThe fi
+rst line contains an integer T, denoting the length of the list X.The following T lines contain the values of X.The next line will contain an integer, N, indicating the number of elements in
+ the list A.The next N lines will contain the elements of the list A.Output FormatPrint true for each index in A if it is a member of X, and false otherwise.Evaluation ParametersSample Input
+2\nhello\nbug\n3\nbug\nin\nproduction\nSample Outputtrue\nfalse\nfalse\nExplanationElements of list X [hello, bug]Elements of lis A [bug, in, production]\nAs only bug from list A is present 
+in list X, so true has been printed only for 0th index.",
+  "problem_name": u"Member or Not",
+  "problem_score": 50,
+  "problem_slug": u"ooevw",
+  "sample_solution": {u"python3": u"def main():\n    # Read the value of x\n    x = int(input())\n    \n    # Read x strings and store them in a list and a set\n    v = []\n    st = set()\n 
+   for _ in range(x):\n        s = input().strip()\n        v.append(s)\n        st.add(s)\n    \n    # Read the value of A\n    A = int(input())\n    \n    # Initialize a list to store the 
+answers\n    ans = []\n    \n    # For each query, check if the string is present in the set\n    for _ in range(A):\n        s = input().strip()\n        if s in st:\n            ans.append
+("true")\n        else:\n            ans.append("false")\n    \n    # Print all results\n    for result in ans:\n        print(result)\n\n# Call the main function\nif __name__ == "__main__":
+\n    main()\n"},
+  "tags": u"iiht_capgemini, Reverified, Python List, Python Basics"},
+ {"correct_answer": [],
+  "insight_tags": u"Python Basics",
+  "level": u"EAS",
+  "option_1": "",
+  "option_2": "",
+  "option_3": "",
+  "option_4": "",
+  "penalty": 0,
+  "private_tags": "",
+  "problem_decription": u"Problem StatementYou are given a list of words, your task is to find the lengths of the corresponding words.Input FormatThe first line will contain an integer, N, r
+epresenting the number of words.The next N lines will contain a word.Constraints1 <= N <= 101 <= length of each word <= 10Output FormatPrint the length of each word on a separate line.Evalua
+tion ParametersInput3\none\ntwo\nthree\nOutput3\n3\n5\nExplanationHere 3, 3 and 5 corresponds to length of "one", "two" and "three" respectively.",
+  "problem_name": u"Word Length",
+  "problem_score": 50,
+  "problem_slug": u"638v5",
+  "sample_solution": {u"cpp14": u"#include <bits/stdc++.h>\n\nusing namespace std;\n\nstring ltrim(const string &);\nstring rtrim(const string &);\n\n/*\n * Complete the \"count_word\" funct
+ion below.\n * \n * The function is expected to return an INTEGER ARRAY.\n * The function accepts STRING ARRAY ss as parameter.\n * \n */\n\nvector<int> count_word(vector<string> ss) {\n    
+vector<int> result;\n    \n    for (const string& s : ss) {\n        result.push_back(s.length());\n    }\n    \n    return result;\n}\n\nint main() {\n    string ss_count_temp;\n    getline
+(cin, ss_count_temp);\n\n    int ss_count = stoi(ltrim(rtrim(ss_count_temp)));\n\n    vector<string> ss(ss_count);\n\n    for (int i = 0; i < ss_count; i++) {\n        string ss_item;\n     
+   getline(cin, ss_item);\n        ss[i] = ss_item;\n    }\n\n    vector<int> result = count_word(ss);\n\n    for (int i = 0; i < result.size(); i++) {\n        cout << result[i];\n\n       
+ if (i != result.size() - 1) {\n            cout << "\\n";\n        }\n    }\n\n    return 0;\n}\n\nstring ltrim(const string &str) {\n    string s(str);\n\n    s.erase(\n        s.begin(),\
+n        find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace)))\n    );\n\n    return s;\n}\n\nstring rtrim(const string &str) {\n    string s(str);\n\n    s.erase(\n        find_if(s
+.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(),\n        s.end()\n    );\n\n    return s;\n}\n",
+                      u"python3": u"#!/bin/python3\n\nimport math\nimport os\nimport random\nimport re\nimport sys\n\n#\n# Complete the "count_word' function below.\n# \n# The function is ex
+pected to return an INTEGER ARRAY.\n# The function accepts STRING ARRAY ss as parameter.\n#\n\ndef count_word(ss):\n\t# Write your code here\n\treturn [len(word) for word in ss]\n\t\n\nif __
+name__ == '__main__':\n\tss_count = int(input().strip())\n\n\tss = []\n\n\tfor _ in range(ss_count):\n\t\tss_item = input()\n\t\tss.append(ss_item)\n\n\tresult = count_word(ss)\n\n\tprint('\
+\n'.join(map(str, result)))\n"},
+  'tags': u'Verified, Reverified, Python Basics, Python'},
+ {'correct_answer': [],
+  'insight_tags': u'Python Basics',
+  'level': u'EAS',
+  'option_1': '',
+  'option_2': '',
+  'option_3': '',
+  'option_4': '',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Problem StatementWrite a program that takes a list of words and returns the length of the longest one.Input FormatFirst line will contain an integer N, the number o
+f words.The next N lines will have a word.Constraints1 <= N <= 501 <= length of word <= 100Output Formatprint length of the largest wordEvaluation ParametersInput #13\nwhich\nis\nlargest\nOu
+tput #17\nExplanationHere the word "largest" has the largest length which is 7',
+  'problem_name': u'Longest Word',
+  'problem_score': 50,
+  'problem_slug': u'lbnp4',
+  'sample_solution': {u'python2': u"import math\nimport os\nimport random\nimport re\nimport sys\n#\n# Complete the 'findLongestWord' function below.\n#\n# The function is expected to return
+ an INTEGER.\n# The function accepts following parameters:\n# 1. INTEGER n\n# 2. STRING ARRAY arr\n#\n\n\ndef findLongestWord(n, arr):\n    # Write your code here\n    max_l = 0\n    for w i
+n arr:\n        if len(w) > max_l:\n            max_l = len(w)\n    return max_l\n\nif __name__ == '__main__':\n    n = int(raw_input().strip())\n    arr = []\n    for _ in range(n):\n      
+  arr_item = raw_input()\n        arr.append(arr_item)\n    result = findLongestWord(n, arr)\n    print str(result)",
+                      u'python3': u"import math\nimport os\nimport random\nimport re\nimport sys\n#\n# Complete the 'findLongestWord' function below.\n#\n# The function is expected to return
+ an INTEGER.\n# The function accepts following parameters:\n# 1. INTEGER n\n# 2. STRING ARRAY arr\n#\n\n\ndef findLongestWord(n, arr):\n    # Write your code here\n    max_l = 0\n    for w i
+n arr:\n        if len(w) > max_l:\n            max_l = len(w)\n    return max_l\n\nif __name__ == '__main__':\n    n = int(input().strip())\n    arr = []\n    for _ in range(n):\n        ar
+r_item = input()\n        arr.append(arr_item)\n    result = findLongestWord(n, arr)\n    print(str(result))"},
+  'tags': u'Verified, iiht_capgemini, Reverified, Python Basics, Python'},
+ {'correct_answer': [],
+  'insight_tags': u'Algorithms',
+  'level': u'EAS',
+  'option_1': '',
+  'option_2': '',
+  'option_3': '',
+  'option_4': '',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Problem StatementAs a beginner in Python programming, your task is to generate and print a list of 10 numbers within a given range, between a start point and an end
+ point.The program should handle multiple test cases and check certain conditions before printing the range.Input\u200b \u200bFormatThe first line contains an integer T, the number of test c
+ases.The next T lines each contain two integers: a start point and an end point.ConstraintsThe start point should NOT be less than 1; else print Out of RangeThe end point should NOT exceed 1
+00; else print Out of RangeThe difference between the start point and end point (inclusive of both) should always be equal to 10; else print Difference Not in RangeThe limits constraint shou
+ld be checked before the difference constraint.Output\u200b \u200bFormatFor each test case, print a list containing exactly 10 integers between the given start and end if the conditions are 
+met.If any condition is violated, print the corresponding error message.Evaluation ParametersSample Input 13\n1 9\n22 31\n90 103\nSample Output 1Difference Not in Range\n[22, 23, 24, 25, 26,
+ 27, 28, 29, 30, 31]\nOut of Range\nExplanation:For the first test case, the difference between 1 and 9 is 9, which is not valid (the inclusive difference must be 10).For the second test cas
+e, the difference between 22 and 31 is 10, so it prints the range from 22 to 31.For the third test case, the end point 103 exceeds the maximum value of 100, so it prints Out of Range.Sample 
+Input 22\n2 4\n3 12\nSample Output 2Difference Not in Range\n[3, 4, 5, 6, 7, 8, 9, 10, 11, 12]\nExplanation:For the first test case, the difference between 2 and 4 is 3, which is not valid (
+the inclusive difference must be 10).For the second test case, the difference between 3 and 12 is 10, so it prints the range from 3 to 12.',
+  'problem_name': u'Algorithms: Numbered Lists',
+  'problem_score': 50,
+  'problem_slug': u'35oq4',
+  'sample_solution': {u'python3': u'# Function to check the conditions and print the numbers or error messages\ndef print_numbers_in_range(start, end):\n    # Check for the range constraints
+\n    if start < 1 or start > 100:\n        print("Out of Range")\n    elif end < 1 or end > 100:\n        print("Out of Range")\n    elif end - start != 9:\n        print("Difference Not in
+ Range")\n    else:\n        # If all conditions are met, print the 10 numbers\n        numbers = list(range(start, end + 1))\n        print(numbers)\n\n# Input: number of test cases\nT = in
+t(input())\n\n# Process each test case\nfor _ in range(T):\n    # Input: start and end points for each test case\n    start, end = map(int, input().split())\n    print_numbers_in_range(start
+, end)\n'},
+  'tags': u'Verified, Algorithms, Lists, Python'},
+ {'correct_answer': None,
+  'insight_tags': u'Numpy',
+  'level': u'EAS',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Problem StatementYou are given two arrays containing user IDs. array_1 has N user IDs and array_2 has all the user IDs i.e array_1 IDs and additional IDs. Your task
+ is to find out  these additional IDs.Input FormatFirst line will contain space separated integers of array_1 ID.Next line will contain space separated integers of C.Constraints1<=array1 ID,
+ array_2 ID<=102.array_2 ID>array_1 IDOutput FormatPrint the additional IDs in space separated format.Evaluation ParametersSample Input1 4 7 3\n1 2 3 4 5 6 7\nSample Output2 5 6\nExplanation
+2, 5, and 6 are not present in the array_1 ID so that means its additional ID',
+  'problem_name': u'Find the odd man out',
+  'problem_score': 50,
+  'problem_slug': u'84xg9n',
+  'sample_solution': {u'python3': u'import pandas as pd\nimport numpy as np\n\n\n\ndef additionalID(array_1, array_2):\n    # Write your code here and Return the Numpy Array\n    array_1 = s
+et(array_1)\n    array_2 = set(array_2)\n    add_id = set(array_2) - set(array_1)\n    return np.array(add_id)\n    \nif __name__ == \'__main__\':\n    ls1 = np.array(list(map(int,input().sp
+lit())))\n    ls2 = np.array(list(map(int,input().split())))\n    ans = additionalID(ls1, ls2)\n    ans = list(ans.tolist())\n    ans.sort()\n    print(*ans,sep=" ")'},
+  'tags': u'Numpy, Reverified, Python'},
+ {'correct_answer': None,
+  'insight_tags': u'EDA',
+  'level': u'MED',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u"Problem StatementAs the world gears up for another thrilling Olympic Games, SportsStat Inc. takes on the monumental task of sifting through a dataset spanning the m
+odern Olympics' storied history. In a quest to celebrate excellence and inspire the next generation, analysts are poised to uncover the most decorated sports, athletes, and events that have 
+captivated audiences worldwide. This analysis not only honors past achievements but also shines a light on the evolving landscape of international sports competition.Your task is to do the f
+ollowing :Identify the top 5 sports that have awarded the most medals.Identify the top 5 athletes who have won the most gold medals.Identify the top 5 Olympic events that have attracted the 
+largest number of athletes. (take unique values for only task3)Identify the top 5 sports with the most number of female gold medalists.DatasetYou can use the given dataset for the task.The d
+ataset contains 9 attributes: Year, City, Sport, Discipline, Athlete, Country, Gender, Event, and Medal.You can access the dataset at the following location :/data/training/dataset.csv\nOutp
+utSave your file at the given location with the following data:1) The top 5 sports that have awarded the most medals./code/task1.csv\n2) The top 5 athletes who have won the most gold medals.
+/code/task2.csv\n3) The top 5 Olympic events that have attracted the largest number of athletes./code/task3.csv\n4) The top 5 sports with the most number of female gold medalists./code/task4
+.csv\nSample Output1) The top 5 sports that have awarded the most medals.2) The top 5 athletes who have won the most gold medals.3) The top 5 Olympic events that have attracted the largest n
+umber of athletes.4) The top 5 sports with the most number of female gold medalists.NOTE:Make sure your Output files have the same column names as those provided in the Sample Output.Ignore 
+the validation dataset and evaluation dataset. The datasets for this problem are provided in the training dataset.",
+  'problem_name': u'Olympics Analysis',
+  'problem_score': 75,
+  'problem_slug': u'dx9vo1',
+  'sample_solution': {u'python3': u"#importing libraries\nimport pandas as pd\nimport numpy as np\n\n#reading the dataset\ndf = pd.read_csv('/data/training/dataset.csv',encoding='utf-8')\ndf
+ = df.applymap(lambda x: x.encode('ascii', 'ignore').decode('ascii') if isinstance(x, str) else x)\n# task 1: top 5 sports that have awarded the most medals\ntask1 = pd.DataFrame(df.groupby(
+'Sport').count()['Medal'].sort_values(ascending=False).head()).reset_index()\n# print(task1)\n\ntask1.to_csv('/code/task1.csv', index=False)\n\n# task 2: top 5 athletes who have won the most
+ gold medals.\ndf_gold=df[df['Medal']=='Gold']\n# df_gold.groupby('Athlete').count()['Medal'].sort_values(ascending=False).head()\ntask2 = pd.DataFrame(df_gold.groupby('Athlete').count()['Me
+dal'].sort_values(ascending=False).head()).reset_index()\n# print(task2)\n\ntask2.to_csv('/code/task2.csv', index=False)\n\n# task 3: top 5 Olympic events that have attracted the largest num
+ber of athletes.\ntask3 = pd.DataFrame(df.groupby('Event')['Athlete'].nunique().sort_values(ascending=False).head()).reset_index()\n# print(task3)\n\ntask3.to_csv('/code/task3.csv', index=Fa
+lse)\n\n# task 4: top 5 sports with the most number of female gold medalists.\ndf_gold=df[df['Medal']=='Gold']\ndf_gold_female=df_gold[df_gold['Gender']=='Women']\ntask4 = pd.DataFrame(df_go
+ld_female.groupby('Sport').count()['Gender'].sort_values(ascending=False).head()).reset_index()\ntask4.rename(columns={'Gender':'Women'}, inplace=True)\n# print(task4)\ntask4.to_csv('/code/t
+ask4.csv', index=False)\n"},
+  'tags': u'Verified, Reverified, EDA, Data Science, Python, Analysis'},
+ {'correct_answer': None,
+  'insight_tags': u'Data cleaning',
+  'level': u'MED',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u"Problem StatementIn the dynamic realm of insurance, where precision and accuracy shape the future, GlobalAssure, a pioneering insurance corporation, embarks on a mi
+ssion to refine its vast datasets. Tasked with transforming a cluttered insurance dataset into a model-ready format, analysts stand at the forefront of innovation. This dataset, marred by in
+consistencies and missing values, holds the secrets to predicting future claims and understanding risk factors. Your objective is to cleanse, preprocess, and prepare this data, unlocking the
+ potential for groundbreaking insights.Your task is to do the following :Remove these columns from the dataset: VehicleID, IncidentAddress, Country, InsurancePolicyNumber, DateOfPolicyCovera
+ge, Country, DateOfIncident.Standardize missing values by replacing '?', '???', '-1', '-5', 'MISSINGVALUE', and 'mode' with null values.Eliminate any column that has more than 30% null value
+s to ensure data quality.For categorical variables, fill in missing values with the most frequent value (mode) within each column.For numerical variables, impute missing entries with the col
+umn's average value (mean).Transform the TypeOfIncident column by mapping:'Single Vehicle Collision' -> 1'Multi-vehicle Collision' -> 2'Parked Car' -> 3'Vehicle Theft' -> 4Recode the TypeOfC
+ollission column values as follows:'Side Collision' -> 1'Rear Collision' -> 2'Front Collision' -> 3DatasetYou can use the given dataset for the given tasks.The dataset contains 42 attributes
+: CustomerID, DateOfIncident, TypeOfIncident, TypeOfCollission, SeverityOfIncident, AuthoritiesContacted, IncidentState, IncidentCity, IncidentAddress, IncidentTime, NumberOfVehicles, Proper
+tyDamage, BodilyInjuries, Witnesses, PoliceReport, AmountOfTotalClaim, AmountOfInjuryClaim, AmountOfPropertyClaim, AmountOfVehicleDamage, InsuredAge, InsuredZipCode, InsuredGender, InsuredEd
+ucationLevel, InsuredOccupation, InsuredHobbies, CapitalGains, CapitalLoss, Country, InsurancePolicyNumber, CustomerLoyaltyPeriod, DateOfPolicyCoverage, InsurancePolicyState, Policy_Combined
+SingleLimit, Policy_Deductible, PolicyAnnualPremium, UmbrellaLimit, InsuredRelationship, VehicleID, VehicleMake, VehicleModel, VehicleYOM, and ReportedFraud.You can access the dataset at the
+ following location:/data/training/dataset.csv\nOutputSave your file at the given location with the following data:/code/output.csv\nSample Output",
+  'problem_name': u'Data Prep Odyssey: Insurance Analytics',
+  'problem_score': 150,
+  'problem_slug': u'n31low',
+  'sample_solution': {u'python3': u"# importing libraries\nimport pandas as pd \nimport numpy as np \nimport warnings\nwarnings.filterwarnings('ignore')\npd.set_option('display.max_columns',
+ 50)\n\n# reading dataset\ndata = pd.read_csv('/data/training/dataset.csv')\nprint(data.shape)\n# print(data.head)\n\n# dropping the mentioned columns\ndata1 = data.drop(['VehicleID', 'Incid
+entAddress', 'Country', 'InsurancePolicyNumber', 'DateOfPolicyCoverage', 'Country', 'DateOfIncident'],axis=1)\nprint(data1.shape)\n# print(data1.head())\n\n# Replacing the mentioned values w
+ith null vales\ndata1 = data1.replace(['?','???','-1','-5','MISSINGVALUE','mode'], np.nan)\n# print((data1.isnull().sum()/len(data1)*100).sort_values(ascending = False))\n\n# Drop columns wi
+th null value more than 30%\nnull_columns = data1.columns[data1.isnull().mean() > 0.3]\nprint(null_columns)\ndata1.drop(null_columns, axis=1, inplace=True)\nprint(data1.shape)\n\n# Imputing 
+missing values\ndata1['InsuredGender'].fillna(data1['InsuredGender'].mode()[0],inplace=True)\ndata1['Witnesses'].fillna(data1['Witnesses'].mode()[0],inplace=True)\ndata1['VehicleMake'].filln
+a(data1['VehicleMake'].mode()[0],inplace=True)\ndata1['TypeOfCollission'].fillna(data1['TypeOfCollission'].mode()[0],inplace=True)\n\n# Replacing column 'TypeOfIncident' values\ndata1['TypeO
+fIncident'] = data1['TypeOfIncident'].map({'Single Vehicle Collision': 1, 'Multi-vehicle Collision': 2, 'Parked Car': 3, 'Vehicle Theft': 4})\n\n# Replacing column 'TypeOfCollission' values\
+ndata1['TypeOfCollission'] = data1['TypeOfCollission'].map({'Side Collision':1, 'Rear Collision':2, 'Front Collision':3})\n\n# saving the output\ndata1.to_csv('/code/output.csv', index=False
+)"},
+  'tags': u'Verified, Pandas, Missing values, EDA, Data cleaning, Python'},
+ {'correct_answer': None,
+  'insight_tags': u'django, Django Rest Framework (DRF)',
+  'level': u'EAS',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Implement a simple REST API to manage a collection of student records.\nEach student record is a JSON entry with the following keys:id: The unique ID of the student
+. (Integer)first_name: The name of the student. (String)last_name: The last name of the student. (String)date_of_birth: The date of birth of the student. (Date)grade: The grade of the studen
+t. (Integer)phone: The phone number of the student. (String)email: The email of the student. (String)\nHere is an example of a student data JSON object:{\n    "id":  1,\n    "first_name":  "
+John",\n    "last_name":  "Doe",\n    "date_of_birth":  "2000-02-08",\n    "grade":  7,\n    "phone":  "1234567890",\n    "email":  "john@email.com"\n}\nThere is already an implementation of
+ the Student model. Implement a REST service that exposes the /students endpoint to manage the collection of student records as follows:\nPOST request to /students:creates a new student reco
+rdexpects a JSON student object without an id property as a body payload. You can assume that the given object is always valid.adds the given student object to the collection of student reco
+rds and assigns a unique integer id to it. The first created student record must have id 1, the second one 2, and so on.the response code is 201, and the response body is the created student
+ record\nGET request to /students:returns a collection of all student recordsthe response code is 200, and the response body is an array of all student records ordered by their ids in increa
+sing order.\nGET request to /students/<id>:returns a student record with the given idif the matching student exists, the response code is 200 and the response body is the matching student re
+cordif there is no student with the given id, the response code is 404 with an error message Student doesn\'t exist.\nPATCH request to /students/<id>:updates a student record with the given 
+idexpects a JSON student object without an id property as a body payload. You can assume that the given object is always valid.on success, the response code is 200, and the response body is 
+the updated student recordif there is no student with the given id in the collection, the response code is 404 with an error message Student doesn\'t exist.\nComplete the given project so th
+at it passes all the test cases when running the provided unit tests. The project by default supports the use of the SQLite3 database. Implement the POST request to /students/ first because 
+testing the other methods requires POST requests to work correctly.Example requests and responses\nPOST request to /studentsRequest body:{\n    "first_name":  "John",\n    "last_name":  "Doe
+",\n    "date_of_birth":  "2000-02-08",\n    "grade":  7,\n    "phone":  "1234569079",\n    "email":  "john@email.com"\n}\nThe response code is 201, and when converted to JSON, the response 
+body is:{\n    "id":  1,\n    "first_name":  "John",\n    "last_name":  "Doe",\n    "date_of_birth":  "2000-02-08",\n    "grade":  7,\n    "phone":  "1234569079",\n    "email":  "john@email.
+com"\n}\nThis adds a new object to the collection with the given properties and id 1.\nGET request to /studentsAssuming these are all of the objects in the collection, the response code is 2
+00, and when converted to JSON, the response body is:[\n   {\n      "id":  1,\n      "first_name":  "John",\n      "last_name":  "Doe",\n      "date_of_birth":  "2000-02-08",\n      "grade":
+  7,\n      "phone":  "+1234569079",\n      "email":  "john@email.com"\n   },\n   {\n      "id":  2,\n      "first_name":  "James",\n      "last_name":  "Smith",\n      "date_of_birth":  "20
+04-07-25",\n      "grade":  5,\n      "phone":  "7209374654",\n      "email":  "smith@email.com"\n   }\n]\n\nGET request to /students/1Assuming that the object with id 1 exists, then the res
+ponse code is 200 and the response body, when converted to JSON, is as follows:{\n    "id":  1,\n    "first_name":  "John",\n    "last_name":  "Doe",\n    "date_of_birth":  "2000-02-08",\n  
+  "grade":  7,\n    "phone":  "1234567890",\n    "email":  "john@email.com"\n}\nIf an object with id 1 doesn\'t exist, then the response code is 404 with an error message "Student doesn\'t e
+xist"{\n    "message": "Student doesn\'t exist"\n}\n\nPATCH request to /students/1Request body:{\n    "first_name":  "John",\n    "last_name":  "Doe",\n    "date_of_birth":  "2010-05-01",\n 
+   "grade":  9,\n    "phone":  "1234325679",\n    "email":  "jhon.doe@email.com"\n}\nAssuming that the object with id 1 exists, then the response code is 200 and the response body, when conv
+erted to JSON, is as follows:{\n    "id":  1,\n    "first_name":  "John",\n    "last_name":  "Doe",\n    "date_of_birth":  "2010-05-01",\n    "grade":  9,\n    "phone":  "1234325679",\n    "
+email":  "jhon.doe@email.com"\n}\nIf an object with id 1 does not exist, then the response code is 404 with an error message "Student doesn\'t exist".',
+  'problem_name': u'Django: Student Management API',
+  'problem_score': 50,
+  'problem_slug': u'r0n53v',
+  'sample_solution': {},
+  'tags': u'Django Rest Framework (DRF), Rest API, django'},
+ {'correct_answer': None,
+  'insight_tags': u'Django Rest Framework (DRF)',
+  'level': u'EAS',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Django API for User and Contact ManagementImplement a simple REST API to manage a collection of user and contact records.Each user and contact record is a JSON entr
+y with the following keys:Userid: The unique ID of the user. (Integer)username: The username of the user. (String)email: The email of the user. (String)first_name: The first name of the user
+. (String)last_name: The last name of the user. (String)date_joined: The date the user joined. (DateTime)Contactid: The unique ID of the contact. (Integer)creator: The ID of the user who cre
+ated the contact. (Integer)first_name: The first name of the contact. (String)last_name: The last name of the contact. (String)email: The email of the contact. (String)phone_number: The phon
+e number of the contact. (String)address: The address of the contact. (String)date_added: The date the contact was added. (DateTime)API EndpointsPOST request to /users/Creates a new user rec
+ord.Expects a JSON user object without an id property as a body payload. You can assume that the given object is always valid.Adds the given user object to the collection of user records and
+ assigns a unique integer id to it. The first created user record must have id 1, the second one 2, and so on.The response code is 201, and the response body is the created user record.Examp
+le request body:{\n    "username": "john_doe",\n    "email": "john@example.com",\n    "first_name": "John",\n    "last_name": "Doe"\n}\nExample response:{\n    "id": 1,\n    "username": "joh
+n_doe",\n    "email": "john@example.com",\n    "first_name": "John",\n    "last_name": "Doe",\n    "date_joined": "2023-05-01T10:00:00Z"\n}\nPOST request to /contacts/Creates a new contact r
+ecord.Expects a JSON contact object without an id property as a body payload. You can assume that the given object is always valid.Adds the given contact object to the collection of contact 
+records and assigns a unique integer id to it. The first created contact record must have id 1, the second one 2, and so on.The response code is 201, and the response body is the created con
+tact record.Example request body:{\n    "creator": 1,\n    "first_name": "Jane",\n    "last_name": "Doe",\n    "email": "jane@example.com",\n    "phone_number": "+1234567890",\n    "address"
+: "123 Main St"\n}\nExample response:{\n    "id": 1,\n    "creator": 1,\n    "first_name": "Jane",\n    "last_name": "Doe",\n    "email": "jane@example.com",\n    "phone_number": "+123456789
+0",\n    "address": "123 Main St",\n    "date_added": "2023-05-01T10:00:00Z"\n}\nGET request to /contacts/Returns a collection of all contact records.The response code is 200, and the respon
+se body is an array of all contact records ordered by their ids in increasing order.Example response:[\n    {\n        "id": 1,\n        "creator": 1,\n        "first_name": "Jane",\n       
+ "last_name": "Doe",\n        "email": "jane@example.com",\n        "phone_number": "+1234567890",\n        "address": "123 Main St",\n        "date_added": "2023-05-01T10:00:00Z"\n    },\n 
+   {\n        "id": 2,\n        "creator": 1,\n        "first_name": "Alice",\n        "last_name": "Smith",\n        "email": "alice@example.com",\n        "phone_number": "+0987654321",\n 
+       "address": "456 Elm St",\n        "date_added": "2023-05-02T11:00:00Z"\n    }\n]\nPATCH request to /contacts/<id>/Updates a contact record with the given id.Expects a JSON contact obj
+ect without an id property as a body payload. You can assume that the given object is always valid.On success, the response code is 200, and the response body is the updated contact record.I
+f there is no contact with the given id in the collection, the response code is 404 with an error message Contact with id: <id> does not exist.If no Id is provided, the response code is 400 
+with an error message No id providedExample request body:{\n    "first_name": "Jane",\n    "last_name": "Doe",\n    "email": "jane.doe@example.com",\n    "phone_number": "+1234567890",\n    
+"address": "123 Main St, Apt 4"\n}\nExample response for a valid contact:{\n    "id": 1,\n    "creator": 1,\n    "first_name": "Jane",\n    "last_name": "Doe",\n    "email": "jane.doe@exampl
+e.com",\n    "phone_number": "+1234567890",\n    "address": "123 Main St, Apt 4",\n    "date_added": "2023-05-01T10:00:00Z"\n}\nExample response for an invalid contact:{\n    "error": "Conta
+ct with id: <id> does not exist"\n}\nDELETE request to /contacts/<id>/Deletes a contact record with the given id.If the contact exists, the response code is 200 and the response body contain
+s a success message.If there is no contact with the given id, the response code is 404 with an error message Contact with id: <id> does not exist.If no Id is provided, the response code is 4
+00 with an error message No id providedExample response for a valid contact:{\n    "message": "Contact with id: <id> was deleted successfully"\n}\nExample response for an invalid contact:{\n
+    "error": "Contact with id: <id> does not exist"\n}\nExample of no id provided{\n  "error": "No id provided"\n}',
+  'problem_name': u'Django: Contact Manager Application',
+  'problem_score': 50,
+  'problem_slug': u'5dro83',
+  'sample_solution': {},
+  'tags': u'Django Rest Framework (DRF), Rest API, django'},
+ {'correct_answer': None,
+  'insight_tags': u'Accuracy, Binary Classification',
+  'level': u'EAS',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Problem StatementWith the rapid rise in digital transactions globally, the threat of cyber attacks, especially those targeting financial information, has significan
+tly increased. Hackers often exploit vulnerabilities associated with digital payment systems, and even minimal data like a phone number linked to a bank account can be sufficient for initiat
+ing malicious activities. To proactively defend against these cyber threats, developing a predictive model that can analyze incident logs and identify patterns indicating potential cyber-att
+acks is crucial.The task is to classify whether an incident is a potential malicious offense or not based on anonymized logging parameters.Training DatasetYou can use the training dataset to
+ train the model.The training dataset contains 19 attributes: ID, INCIDENT_ID, DATE, X_1, X_2, X_3, X_4, X_5, X_6, X_7, X_8, X_9, X_10, X_11, X_12, X_13, X_14, X_15, and MALICIOUS_OFFENSE, w
+here MALICIOUS_OFFENSE shows whether an incident is a potential malicious offense or not.You can access the training dataset at the following location :train.csv\nTesting DatasetYou can use 
+the testing dataset for the prediction.The testing dataset contains 18 attributes:  ID, INCIDENT_ID, DATE, X_1, X_2, X_3, X_4, X_5, X_6, X_7, X_8, X_9, X_10, X_11, X_12, X_13, X_14, and X_15
+.You can access the testing dataset at the following location :test.csv\nOutputSave your file at the given location with the following data:output.csv\nSample OutputID\tMALICIOUS_OFFENSE\nM#
+11\t1\nM#12\t1\nM#13\t1\nM#14\t1\nM#15\t0\nEvaluationYour solution will be accepted if the classification accuracy exceeds 70%.Positive Class: 1NOTE: You must also perform data cleaning and 
+pre-processing to test data.',
+  'problem_name': u'Predicting Cyber Attack Incidents',
+  'problem_score': 150,
+  'problem_slug': u'd9emx1',
+  'sample_solution': {},
+  'tags': u'Binary Classification, Verified, Accuracy, Reverified, Machine Learning, Jupyter'},
+ {'correct_answer': None,
+  'insight_tags': u'Binary Classification',
+  'level': u'EAS',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u"Problem StatementA financial institution is looking to enhance its loan approval system by leveraging machine learning to make faster and more accurate decisions. T
+he task is to build a model that predicts whether a loan should be approved based on an applicant's profile, including details like income, employment status, credit history, and other relev
+ant factors. The goal is to reduce processing time while maintaining a high level of accuracy in loan approval decisions.The task is to classify whether an applicant loan is Approved (1) or 
+Not Approved (0) based on the applicant data.Training DatasetYou can use the training dataset to train the model.The training dataset contains 24 attributes:ID, ApplicationDate, EmploymentSt
+atus, EducationLevel, MaritalStatus, HomeOwnershipStatus, LoanPurpose, AnnualIncome, BaseInterestRate, LoanAmount, NetWorth, MonthlyLoanPayment, CreditScore, Age, Experience, LoanDuration, C
+reditCardUtilizationRate, NumberOfCreditInquiries, JobTenure, NumberOfOpenCreditLines, CheckingAccountBalance, DebtToIncomeRatio, BankruptcyHistory, and LoanApproved where LoanApproved shows
+ whether an applicant Loan is Approved or Not.You can access the training dataset at the following location:train.csv\nTesting DatasetYou have to use the testing dataset for the predictions.
+The testing dataset contains 23 attributes: ID, ApplicationDate, EmploymentStatus, EducationLevel, MaritalStatus, HomeOwnershipStatus, LoanPurpose, AnnualIncome, BaseInterestRate, LoanAmount
+, NetWorth, MonthlyLoanPayment, CreditScore, Age, Experience, LoanDuration, CreditCardUtilizationRate, NumberOfCreditInquiries, JobTenure, NumberOfOpenCreditLines, CheckingAccountBalance, De
+btToIncomeRatio, and BankruptcyHistory.Once you train the model using Training Dataset, you need to generate the predictions for Testing Dataset and save it as output.csv file. Refer Sample 
+Output for output.csv file format.You can access the testing dataset at the following location:test.csv\nOutputSave your file at the given location with the following data:output.csv\nSample
+ OutputID\t   LoanApproved\n5349\t0\n340\t    1\n13592\t0\n8154\t0\n16346\t0\nSample Output is given just for illustrative purposes.\ufeffEvaluationYour solution will be accepted if the clas
+sification accuracy on test dataset exceeds 70%.Positive Class: 1 (Indicates Loan Approved)Negative Class: 0 (Indicates Loan Not Approved)NOTE: You must also clean and pre-process the test d
+ata.",
+  'problem_name': u'Binary Classification: Loan Approval',
+  'problem_score': 75,
+  'problem_slug': u'3ada14',
+  'sample_solution': {},
+  'tags': u'Binary Classification, AI_ML_DS, Reverified, Supervised learning, Machine Learning'},
+ {'correct_answer': None,
+  'insight_tags': u'Binary Classification',
+  'level': u'EAS',
+  'penalty': 0,
+  'private_tags': '',
+  'problem_decription': u'Problem StatementA prominent bank seeks to optimize its marketing campaigns for term deposit subscriptions. The bank uses telemarketing to approach potential client
+s, but the success rate is low. With a large dataset of customer information and past marketing outcomes, your task is to build a machine learning model to predict whether a client will subs
+cribe to a term deposit based on historical campaign data. This will enhance targeting and improve subscription rates.The task is to classify whether a client subscribes for term deposit (ye
+s) or (no).Training DatasetYou can use the training dataset to train the model.The training dataset contains 18 attributes: ID, age, job, marital, education, default, balance, housing, loan,
+ contact, day, month, duration, campaign, pdays, previous, poutcome, and y, where y shows whether a client subscribes for term deposit or not.You can access the training dataset at the follo
+wing location :train.csv\nTesting DatasetYou have to use the testing dataset for the prediction.The testing dataset contains 17 attributes: ID, age, job, marital, education, default, balance
+, housing, loan, contact, day, month, duration, campaign, pdays, previous, and poutcome.You can access the testing dataset at the following location :test.csv\nOutputSave your file at the gi
+ven location with the following data:output.csv\nSample OutputID\t    y\n20261\tyes\n34966\tno\n40084\tno\n16799\tyes\n23775\tno\nEvaluationYour solution will be accepted if the classificati
+on accuracy on test dataset exceeds 70%.Positive Class: yes (client subscribes for term deposit)Negative Class: no (client will not subscribes for term deposit)NOTE: You must also clean and 
+pre-process the testing data before testing the model.',
+  'problem_name': u'Binary Classification: Deposit Subscriptions',
+  'problem_score': 75,
+  'problem_slug': u'5dldyn',
+  'sample_solution': {},
+  'tags': u'Binary Classification, AI_ML_DS, Reverified, Supervised learning, Machine Learning'}]
