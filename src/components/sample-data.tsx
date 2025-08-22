@@ -47,9 +47,9 @@ S6,Case Study,statistics,0.5`,
     },
     candidates: {
         name: 'candidates.csv',
-        content: `candidate_id,name,total_time_sec,attempts,plagiarism_score,proctoring_flags,S1,S2,S3,S4,S5,S6
-CAND001,Alice,1800,1,0.05,0,85,90,75,88,92,80
-CAND002,Bob,2200,2,0.1,1,70,80,85,75,65,72`,
+        content: `candidate_id,name,Time Taken,attempts,plagiarism_score,proctoring_flags,S1,S2,S3,S4,S5,S6
+CAND001,Alice,"30m 0s",1,0.05,0,85,90,75,88,92,80
+CAND002,Bob,"36m 40s",2,0.1,1,70,80,85,75,65,72`,
     },
     cv: {
         name: 'cv.csv',

@@ -32,7 +32,7 @@ export interface Candidate {
   attempts: number;
   plagiarism_score: number;
   proctoring_flags: number;
-  [key: string]: any; // for section scores like S1, S2, etc.
+  [key: string]: any; // for section scores like S1, S2, etc. and other raw columns
 }
 
 export interface CvSignal {

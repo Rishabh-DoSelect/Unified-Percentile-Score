@@ -21,6 +21,26 @@ const stddev = (arr: number[]) => {
   const arrMean = mean(arr);
   return Math.sqrt(mean(arr.map(n => (n - arrMean) ** 2)));
 };
+const parseTimeTaken = (time: string | number): number => {
+    if (typeof time === 'number') return time;
+    if (typeof time !== 'string') return 0;
+    
+    let totalSeconds = 0;
+    const parts = time.split(' ');
+
+    parts.forEach(part => {
+        if (part.includes('h')) {
+            totalSeconds += parseInt(part.replace('h', '')) * 3600;
+        } else if (part.includes('m')) {
+            totalSeconds += parseInt(part.replace('m', '')) * 60;
+        } else if (part.includes('s')) {
+            totalSeconds += parseInt(part.replace('s', ''));
+        }
+    });
+
+    return totalSeconds;
+};
+
 
 // --- PARSING & VALIDATION ---
 export const parseYaml = <T>(content: string): T => yaml.load(content) as T;
@@ -182,8 +202,13 @@ export async function processCandidateData(
   const jdSettings = parseYaml<JDSettings>(jdYaml);
   const rubric = parseYaml<Rubric>(rubricYaml);
   const testStructure = parseCsv<TestStructure>(structureCsv);
-  const candidates = parseCsv<Candidate>(candidatesCsv);
+  const rawCandidates = parseCsv<any>(candidatesCsv);
   const cvSignals = cvCsv ? parseCsv<CvSignal>(cvCsv) : null;
+
+  const candidates: Candidate[] = rawCandidates.map(rc => ({
+      ...rc,
+      total_time_sec: parseTimeTaken(rc['Time Taken']),
+  }));
   
   // 2. Score each candidate
   const candidateScores: Omit<CandidateScores, 'final_score'>[] = candidates.map(c => {
