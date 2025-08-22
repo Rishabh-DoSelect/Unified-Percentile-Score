@@ -86,21 +86,24 @@ const calculateSkillAlignment = (
   }
   
   let jdWeightedSkillAlignment = 0;
-  for (const skill in jdSettings.skill_weights) {
-    const skillKey = skill.toLowerCase();
-    const skillData = skillScores[skillKey];
-    let avgSkillScore = 0;
+  if (jdSettings && jdSettings.skill_weights) {
+      for (const skill in jdSettings.skill_weights) {
+        const skillKey = skill.toLowerCase();
+        const skillData = skillScores[skillKey];
+        let avgSkillScore = 0;
 
-    if (skillData && skillData.scores.length > 0) {
-        const totalWeight = skillData.weights.reduce((sum, w) => sum + w, 0);
-        if (totalWeight > 0) {
-            const weightedSum = skillData.scores.reduce((sum, s, i) => sum + s * skillData.weights[i], 0);
-            avgSkillScore = weightedSum / totalWeight;
+        if (skillData && skillData.scores.length > 0) {
+            const totalWeight = skillData.weights.reduce((sum, w) => sum + w, 0);
+            if (totalWeight > 0) {
+                const weightedSum = skillData.scores.reduce((sum, s, i) => sum + s * skillData.weights[i], 0);
+                avgSkillScore = weightedSum / totalWeight;
+            }
         }
-    }
-    
-    jdWeightedSkillAlignment += avgSkillScore * (jdSettings.skill_weights[skill] || 0);
+        
+        jdWeightedSkillAlignment += avgSkillScore * (jdSettings.skill_weights[skill] || 0);
+      }
   }
+
 
   return Math.max(0, Math.min(1, jdWeightedSkillAlignment));
 };
@@ -155,14 +158,15 @@ const calculateEfficiencyConsistency = (
 const calculateIntegrityRisk = (candidate: Candidate): number => {
   let proctorPenalty = 0.1; // Default low penalty
   
-  switch (candidate.proctoring_verdict) {
-      case 'Severe Violations':
+  const verdict = candidate.proctoring_verdict || '';
+  switch (verdict.toLowerCase()) {
+      case 'severe violations':
           proctorPenalty = 1.0;
           break;
-      case 'Minor Violations':
+      case 'minor violations':
           proctorPenalty = 0.5;
           break;
-      case 'Negligible':
+      case 'negligible':
           proctorPenalty = 0.1;
           break;
   }
