@@ -12,6 +12,7 @@ import { processCandidateData } from '@/lib/data-processor';
 import { getAIInsights } from '@/app/actions';
 import { FileCheck2, FileText, Loader2, Upload } from 'lucide-react';
 import { Header } from '@/components/header';
+import { SampleData } from '@/components/sample-data';
 
 interface FileState {
   jd: string | null;
@@ -155,6 +156,9 @@ export default function Analyzer() {
                         </Button>
                     </CardContent>
                     </Card>
+                    <div className='mt-8'>
+                        <SampleData />
+                    </div>
                 </div>
             ) : (
                 <Dashboard report={report} />
