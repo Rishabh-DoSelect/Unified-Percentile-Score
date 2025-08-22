@@ -1,0 +1,104 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+*.pyo
+*.pyd
+*.pdb
+*.coverage
+*.cover
+*.log
+*.pot
+*.mo
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+.eggs/
+*.manifest
+*.spec
+*.dll
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# -------------------------
+# Django
+# -------------------------
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/
+*.pot
+
+# Django migrations
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# -------------------------
+# FastAPI / Uvicorn
+# -------------------------
+*.db
+instance/
+*.pid
+*.sock
+
+# -------------------------
+# IDE / Editors
+# -------------------------
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# -------------------------
+# OS-specific files
+# -------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# -------------------------
+# Other
+# -------------------------
+.env
+*.env
+.env.local
+.env.*.local
+
+# JSON dumps / test exports
+*.json
+data/
