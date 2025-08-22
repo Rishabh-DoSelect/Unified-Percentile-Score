@@ -8,7 +8,7 @@ export function Header() {
           <div className="flex items-center gap-3">
             <Briefcase className="h-7 w-7 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              ATS Analyzer
+              UPS Report
             </h1>
           </div>
         </div>
