@@ -16,6 +16,13 @@ import { Header } from '@/components/header';
 import { SampleData } from '@/components/sample-data';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 
 interface FileState {
   jd: string | null;
@@ -208,33 +215,41 @@ export default function Analyzer() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/50">
-        <Header />
-        <main>
-            <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 max-w-4xl">
-                <Card className="shadow-lg">
-                  <CardHeader>
-                      <CardTitle className="text-2xl flex items-center gap-2"><FileText /> Upload Your Data</CardTitle>
-                      <CardDescription>
-                      Provide JD, test structure, and candidate data. Required fields are marked with an asterisk (*).
-                      </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-8">
-                      <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
-                      <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
-                      <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and signals." fileName={fileNames.candidates} />
-                      <FileInput id="cv" label="CV Signals (Optional)" description="Optional CSV with candidate CV data." isOptional fileName={fileNames.cv} />
-                  </CardContent>
-                </Card>
+    <TooltipProvider>
+      <div className="min-h-screen bg-secondary/50">
+          <Header />
+          <main>
+              <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 max-w-4xl">
+                  <Collapsible>
+                    <Card className="shadow-lg">
+                      <CardHeader className="flex flex-row items-start justify-between">
+                          <div>
+                            <CardTitle className="text-2xl flex items-center gap-2"><FileText /> Upload Your Data</CardTitle>
+                            <CardDescription>
+                            Provide JD, test structure, and candidate data. Required fields are marked with an asterisk (*).
+                            </CardDescription>
+                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <CollapsibleTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <SlidersHorizontal className='h-5 w-5' />
+                                  </Button>
+                              </CollapsibleTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Customize Rubric</p>
+                            </TooltipContent>
+                          </Tooltip>
+                      </CardHeader>
+                      <CardContent className="space-y-8">
+                          <FileInput id="jd" label="JD Skill Weights" description="YAML file with role and skill weights." fileName={fileNames.jd}/>
+                          <FileInput id="structure" label="Test Structure" description="CSV mapping test sections to skills." fileName={fileNames.structure} />
+                          <FileInput id="candidates" label="Candidate Results" description="CSV with candidate test scores and signals." fileName={fileNames.candidates} />
+                          <FileInput id="cv" label="CV Signals (Optional)" description="Optional CSV with candidate CV data." isOptional fileName={fileNames.cv} />
+                      </CardContent>
+                    </Card>
 
-                <Collapsible className='mt-8'>
-                    <CollapsibleTrigger asChild>
-                        <Button variant='outline' className='w-full'>
-                            <SlidersHorizontal className='mr-2 h-4 w-4' />
-                            Customize Rubric Weights
-                            <ChevronDown className='ml-2 h-4 w-4 transition-transform [&[data-state=open]]:rotate-180' />
-                        </Button>
-                    </CollapsibleTrigger>
                     <CollapsibleContent>
                         <Card className="shadow-lg mt-4">
                             <CardHeader>
@@ -255,24 +270,25 @@ export default function Analyzer() {
                             </CardContent>
                         </Card>
                     </CollapsibleContent>
-                </Collapsible>
-                
-                <Button onClick={handleGenerateReport} disabled={!allRequiredFilesUploaded || isLoading || totalWeight !== 100} className="w-full text-lg py-6 mt-8">
-                {isLoading ? (
-                    <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating Report...
-                    </>
-                ) : (
-                    'Generate Report'
-                )}
-                </Button>
+                  </Collapsible>
+                  
+                  <Button onClick={handleGenerateReport} disabled={!allRequiredFilesUploaded || isLoading || totalWeight !== 100} className="w-full text-lg py-6 mt-8">
+                  {isLoading ? (
+                      <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating Report...
+                      </>
+                  ) : (
+                      'Generate Report'
+                  )}
+                  </Button>
 
-                <div className='mt-8'>
-                    <SampleData />
-                </div>
-            </div>
-        </main>
-    </div>
+                  <div className='mt-8'>
+                      <SampleData />
+                  </div>
+              </div>
+          </main>
+      </div>
+    </TooltipProvider>
   );
 }
