@@ -153,7 +153,6 @@ const calculateEfficiencyConsistency = (
 };
 
 const calculateIntegrityRisk = (candidate: Candidate): number => {
-  const plagiarismPenalty = candidate.plagiarism_score || 0;
   let proctorPenalty = 0.1; // Default low penalty
   
   switch (candidate.proctoring_verdict) {
@@ -168,7 +167,7 @@ const calculateIntegrityRisk = (candidate: Candidate): number => {
           break;
   }
   
-  const risk = 0.7 * plagiarismPenalty + 0.3 * proctorPenalty;
+  const risk = proctorPenalty;
   return 1 - Math.max(0, Math.min(1, risk)); // Invert risk to get score
 };
 
@@ -247,7 +246,7 @@ const generateFallbackInsights = (candidate: Omit<RankedCandidate, 'key_strength
         risks.push('Limited evidence of practical application or prior experience from CV.');
     }
     if (candidate.integrity_risk < 0.8) {
-        risks.push('Possible integrity concerns due to plagiarism or proctoring flags.');
+        risks.push('Possible integrity concerns due to proctoring flags.');
     }
 
     return {

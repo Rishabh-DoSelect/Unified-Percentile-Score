@@ -31,8 +31,6 @@ export interface Candidate {
   name: string;
   total_time_sec: number;
   attempts: number;
-  plagiarism_score: number;
-  proctoring_flags: number;
   proctoring_verdict?: 'Negligible' | 'Minor Violations' | 'Severe Violations';
   resume?: string; // Optional URL to the candidate's resume
   [key: string]: any; // for section scores like S1, S2, etc. and other raw columns

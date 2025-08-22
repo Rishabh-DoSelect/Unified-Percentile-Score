@@ -35,9 +35,9 @@ S6,Case Study,statistics,0.5`,
     },
     candidates: {
         name: 'candidates.csv',
-        content: `candidate_id,name,time_taken,attempts,plagiarism_score,proctoring_verdict,resume,S1,S2,S3,S4,S5,S6
-CAND001,Alice,"30m 0s",1,0.05,"Negligible","Experienced data scientist with a background in machine learning and statistical analysis. Skilled in Python, SQL, and R. Projects include a customer churn prediction model and a recommendation engine. Interned at Big Tech Inc.",85,90,75,88,92,80
-CAND002,Bob,"36m 40s",2,0.1,"Minor Violations","Data analyst with a passion for data visualization and storytelling. Proficient in Tableau, Power BI, and Python (Pandas, Matplotlib). No GitHub profile available.",70,80,85,75,65,72`,
+        content: `candidate_id,name,time_taken,attempts,proctoring_verdict,resume,S1,S2,S3,S4,S5,S6
+CAND001,Alice,"30m 0s",1,"Negligible","Experienced data scientist with a background in machine learning and statistical analysis. Skilled in Python, SQL, and R. Projects include a customer churn prediction model and a recommendation engine. Interned at Big Tech Inc.",85,90,75,88,92,80
+CAND002,Bob,"36m 40s",2,"Minor Violations","Data analyst with a passion for data visualization and storytelling. Proficient in Tableau, Power BI, and Python (Pandas, Matplotlib). No GitHub profile available.",70,80,85,75,65,72`,
     },
 };
 
