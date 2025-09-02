@@ -72,7 +72,7 @@ export function Debugger() {
     setTestResults([]);
     try {
         const testStructure = parseCsv<TestStructure>(generatedData.structure);
-        const skills = [...new Set(testStructure.map(s => s.skill))];
+        const skills = [...new Set(testStructure.map(s => s.skill).filter(Boolean))];
         const generatedYaml = await generateJdFromText({
           jobDescription: 'A sample job description for a data scientist requiring Python, SQL, and machine learning skills.',
           skills,
@@ -119,7 +119,7 @@ export function Debugger() {
           toast({ variant: 'destructive', title: 'Test Failed', description: message });
           setTestResults([{name: testName, score: `ERROR: ${message}`, inputs: {}}]);
       } finally {
-          setIsLoading(prev => ({ ..._isLoading, [testName]: false }));
+          setIsLoading(prev => ({ ...prev, [testName]: false }));
       }
   }
 
