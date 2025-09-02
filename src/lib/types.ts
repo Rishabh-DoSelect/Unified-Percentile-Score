@@ -96,6 +96,7 @@ export interface QaCheck {
 
 // New types for the raw platform data format
 export interface PlatformData {
+    problem_slug: string; // Added for mapping
     proctor_verdict: 'Negligible' | 'Minor Violations' | 'Severe Violations' | string;
     code?: string;
     plagiarism?: any;
@@ -120,6 +121,6 @@ export interface PlatformData {
       running_time: string;
     };
     jupyter_data?: any;
-    mcq_choice?: string[];
+    mcq_choice?: string[] | string;
     email: string;
 }

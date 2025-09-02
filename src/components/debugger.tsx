@@ -17,7 +17,7 @@ import {
   parseYaml,
 } from '@/lib/data-processor';
 import { generateJdFromText, generateTestStructureFromJSON, getCvSignals } from '@/app/actions';
-import type { Candidate, CvData, CvSignal, JDSettings, TestStructure } from '@/lib/types';
+import type { Candidate, CvData, CvSignal, JDSettings, TestStructure, PlatformData } from '@/lib/types';
 
 interface GeneratedData {
   jd: string | null;
@@ -44,6 +44,7 @@ export function Debugger() {
 
   useEffect(() => {
     const fetchSamples = async () => {
+      setIsLoading(prev => ({ ...prev, samples: true }));
       try {
         const [problemsRes, candidatesRes, cvsRes, jdRes] = await Promise.all([
           fetch('/sample-data/sample-problems.json'),
@@ -61,6 +62,8 @@ export function Debugger() {
       } catch (error) {
         console.error('Failed to load sample data:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load sample data files.' });
+      } finally {
+        setIsLoading(prev => ({ ...prev, samples: false }));
       }
     };
     fetchSamples();
@@ -120,11 +123,12 @@ export function Debugger() {
       try {
           const result = await testFn();
           setTestResults([result]);
+          toast({ title: 'Test Complete', description: `${result.name} score: ${typeof result.score === 'number' ? (result.score * 100).toFixed(1) + '%' : result.score}` });
       } catch (error) {
           console.error(`Error running test "${testName}":`, error);
           const message = error instanceof Error ? error.message : 'An unknown error occurred';
           toast({ variant: 'destructive', title: 'Test Failed', description: message });
-          setTestResults([{name: testName, score: `ERROR: ${message}`, inputs: {}}]);
+          setTestResults([{name: testName, score: `ERROR: ${message}`, inputs: { error: message }}]);
       } finally {
           setIsLoading(prev => ({ ...prev, [testName]: false }));
       }
@@ -136,7 +140,7 @@ export function Debugger() {
       }
       const jdSettings = parseYaml<JDSettings>(generatedData.jd);
       const testStructure = parseCsv<TestStructure>(generatedData.structure);
-      const platformData = JSON.parse(rawFiles.candidates);
+      const platformData = JSON.parse(rawFiles.candidates) as PlatformData[];
       const candidates = transformPlatformData(platformData, testStructure);
 
       if (candidates.length === 0) {
@@ -158,10 +162,11 @@ export function Debugger() {
 
   const testKnowledgeEvidence = async (): Promise<TestResult> => {
       if (!rawFiles.cvs) throw new Error('CVs sample data not loaded.');
-      const { jdSettings } = getTestData();
+      const { jdSettings, candidates } = getTestData();
+      const candidate = candidates[0];
       const cvData = parseCsv<CvData>(rawFiles.cvs);
-      const sampleCv = cvData.find(c => c.email === "alice@example.com");
-      if (!sampleCv) throw new Error("Could not find sample CV for alice@example.com");
+      const sampleCv = cvData.find(c => c.email === candidate.email);
+      if (!sampleCv) throw new Error(`Could not find sample CV for ${candidate.email}`);
 
       const signals = await getCvSignals({ resumeText: sampleCv.cv_text });
       const score = calculateKnowledgeEvidence(signals, jdSettings);
@@ -217,16 +222,17 @@ export function Debugger() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {isLoading['samples'] && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="animate-spin h-4 w-4" /><span>Loading sample data...</span></div>}
         {/* Data Generation */}
         <div className="space-y-4">
             <h4 className='font-semibold'>1. Data Generation</h4>
             <div className='flex flex-wrap gap-4'>
                 <Button onClick={handleGenerateStructure} disabled={!rawFiles.problems || isLoading['structure']}>
-                    {isLoading['structure'] ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                    {isLoading['structure'] ? <Loader2 className="animate-spin h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
                     Generate Test Structure
                 </Button>
                  <Button onClick={handleGenerateJd} disabled={!generatedData.structure || !rawFiles.jd || isLoading['jd']}>
-                    {isLoading['jd'] ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                    {isLoading['jd'] ? <Loader2 className="animate-spin h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
                     Generate JD Weights
                 </Button>
             </div>
