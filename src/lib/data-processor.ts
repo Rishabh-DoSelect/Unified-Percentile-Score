@@ -79,7 +79,7 @@ const transformPlatformData = (platformData: PlatformData[], testStructure: Test
                 score = record.run_details.score;
             } else if (record.mcq_choice && section.correct_answer) {
                 // MCQ questions need score calculation
-                const candidateChoice = Array.isArray(record.mcq_choice) ? record.mcq_choice : [record.mcq_choice];
+                const candidateChoice = Array.isArray(record.mcq_choice) ? record.mcq_choice.map(String) : [String(record.mcq_choice)];
                 let correctAnswer = section.correct_answer;
                 
                 // If correct answer from CSV is a string, try to parse it as JSON
@@ -92,7 +92,9 @@ const transformPlatformData = (platformData: PlatformData[], testStructure: Test
                     }
                 }
                 if (!Array.isArray(correctAnswer)) {
-                    correctAnswer = [correctAnswer];
+                    correctAnswer = [String(correctAnswer)];
+                } else {
+                    correctAnswer = correctAnswer.map(String);
                 }
 
                 const isCorrect = JSON.stringify(candidateChoice.sort()) === JSON.stringify(correctAnswer.sort());
@@ -127,7 +129,6 @@ const calculateSkillAlignment = (
   let totalPossibleWeight = 0;
 
   if (!jdSettings || !jdSettings.skill_weights) {
-    console.error("FATAL: JD settings or skill_weights are missing. Returning 0.", { jdSettings });
     return 0;
   }
   
