@@ -1,0 +1,35 @@
+
+[
+    {
+        "problem_slug": "S1",
+        "problem_name": "Python Basics",
+        "tags": ["Python", "Programming"],
+        "insight_tags": "Python",
+        "problem_score": 100,
+        "correct_answer": null
+    },
+    {
+        "problem_slug": "S2",
+        "problem_name": "Advanced Python",
+        "tags": ["Python", "Object-Oriented"],
+        "insight_tags": "Python",
+        "problem_score": 100,
+        "correct_answer": null
+    },
+    {
+        "problem_slug": "S3",
+        "problem_name": "SQL Queries",
+        "tags": ["SQL", "Database"],
+        "insight_tags": "SQL",
+        "problem_score": 100,
+        "correct_answer": null
+    },
+    {
+        "problem_slug": "S4",
+        "problem_name": "Data Structures",
+        "tags": ["Theory", "MCQ"],
+        "insight_tags": "Theory",
+        "problem_score": 100,
+        "correct_answer": "[\"Array\",\"Stack\"]"
+    }
+]

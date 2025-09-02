@@ -45,7 +45,7 @@ export const parseCsv = <T>(content:string): T[] => {
 
 
 // --- NEW DATA TRANSFORMATION ---
-const transformPlatformData = (platformData: PlatformData[], testStructure: TestStructure[]): Candidate[] => {
+export const transformPlatformData = (platformData: PlatformData[], testStructure: TestStructure[]): Candidate[] => {
     const candidateMap: Map<string, Candidate> = new Map();
 
     const structureMap = new Map(testStructure.map(s => [s.section_name, s]));
@@ -120,7 +120,7 @@ const transformPlatformData = (platformData: PlatformData[], testStructure: Test
 
 // --- SCORING RULES ---
 
-const calculateSkillAlignment = (
+export const calculateSkillAlignment = (
   candidate: Candidate,
   testStructure: TestStructure[],
   jdSettings: JDSettings
@@ -137,27 +137,36 @@ const calculateSkillAlignment = (
       skillWeightsLower[skill.toLowerCase()] = jdSettings.skill_weights[skill];
   }
 
+  // Group sections by skill
+  const skillsToSections: Record<string, TestStructure[]> = {};
   for (const section of testStructure) {
-    if (!section.skill) continue;
+      if (!section.skill) continue;
+      const skillLower = section.skill.toLowerCase();
+      if (!skillsToSections[skillLower]) {
+          skillsToSections[skillLower] = [];
+      }
+      skillsToSections[skillLower].push(section);
+  }
 
-    const skillLower = section.skill.toLowerCase();
-    const jdWeight = skillWeightsLower[skillLower] || 0;
-    
-    // The weight_in_section is considered 1 for all problems now.
-    const weightInSection = section.weight_in_section || 1.0; 
-    const sectionWeight = jdWeight * weightInSection;
-    totalPossibleWeight += sectionWeight;
+  for (const skill in skillWeightsLower) {
+      const jdWeight = skillWeightsLower[skill];
+      totalPossibleWeight += jdWeight;
 
-    if (jdWeight > 0) {
-      const sectionScoreKey = section.section_id.toLowerCase();
-      const candidateScore = candidate[sectionScoreKey] ?? 0;
-      
-      const maxScore = section.problem_score || 100;
-      const normalizedScore = maxScore > 0 ? candidateScore / maxScore : 0;
-      
-      const sectionContribution = normalizedScore * sectionWeight;
-      totalWeightedScore += sectionContribution;
-    }
+      const relevantSections = skillsToSections[skill];
+      if (relevantSections && relevantSections.length > 0) {
+          let totalSkillScore = 0;
+          let totalSkillMaxScore = 0;
+
+          for (const section of relevantSections) {
+              const candidateScore = candidate[section.section_id.toLowerCase()] ?? 0;
+              const maxScore = section.problem_score || 100;
+              totalSkillScore += candidateScore;
+              totalSkillMaxScore += maxScore;
+          }
+
+          const normalizedSkillScore = totalSkillMaxScore > 0 ? totalSkillScore / totalSkillMaxScore : 0;
+          totalWeightedScore += normalizedSkillScore * jdWeight;
+      }
   }
   
   const finalScore = totalPossibleWeight > 0 ? totalWeightedScore / totalPossibleWeight : 0;
@@ -165,10 +174,10 @@ const calculateSkillAlignment = (
 };
 
 
-const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
+export const calculateKnowledgeEvidence = (cv: CvSignal | undefined, jdSettings: JDSettings): number => {
   if (!cv) return 0.5; // Neutral score if no CV data
 
-  const keywordDict = ["python", "pandas", "numpy", "scikit-learn", "ml", "django", "sql", "tensorflow", "pytorch", "aws", "gcp", "azure", "java", "spring", "react"];
+  const keywordDict = Object.keys(jdSettings.skill_weights || {}).map(k => k.toLowerCase());
   const projectsScore = Math.min(cv.projects || 0, 3) / 3;
   const internshipsScore = Math.min(cv.internships || 0, 2) / 2;
   const githubScore = cv.github ? 1 : 0;
@@ -180,7 +189,7 @@ const calculateKnowledgeEvidence = (cv: CvSignal | undefined): number => {
   return Math.max(0, Math.min(1, score));
 };
 
-const calculateProblemSolving = (candidate: Candidate, testStructure: TestStructure[]): number => {
+export const calculateProblemSolving = (candidate: Candidate, testStructure: TestStructure[]): number => {
   const sectionIds = testStructure.map(s => s.section_id.toLowerCase());
   if (sectionIds.length === 0) return 0.5;
 
@@ -202,7 +211,7 @@ const calculateProblemSolving = (candidate: Candidate, testStructure: TestStruct
   return Math.max(0, Math.min(1, score));
 };
 
-const calculateEfficiencyConsistency = (
+export const calculateEfficiencyConsistency = (
   candidate: Candidate,
   allCandidates: Candidate[],
   testStructure: TestStructure[]
@@ -227,7 +236,7 @@ const calculateEfficiencyConsistency = (
   return Math.max(0, Math.min(1, score));
 };
 
-const calculateIntegrityRisk = (candidate: Candidate): number => {
+export const calculateIntegrityRisk = (candidate: Candidate): number => {
   let proctorPenalty = 0.1; // Default low penalty
   
   const verdict = candidate.proctoring_verdict || '';
@@ -373,7 +382,7 @@ export async function processCandidateData(
     const cv = cvSignalsMap.get(c.candidate_id);
     const scores = {
       skill_alignment: calculateSkillAlignment(c, testStructure, jdSettings),
-      knowledge_evidence: calculateKnowledgeEvidence(cv),
+      knowledge_evidence: calculateKnowledgeEvidence(cv, jdSettings),
       problem_solving: calculateProblemSolving(c, testStructure),
       efficiency_consistency: calculateEfficiencyConsistency(c, candidates, testStructure),
       integrity_risk: calculateIntegrityRisk(c),

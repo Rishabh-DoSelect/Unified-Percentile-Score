@@ -30,6 +30,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
+import { Debugger } from '@/components/debugger';
 
 
 interface FileState {
@@ -461,6 +462,10 @@ export default function Analyzer() {
                       'Generate Report'
                   )}
                   </Button>
+
+                  <div className='mt-8'>
+                      <Debugger />
+                  </div>
 
                   <div className='mt-8'>
                       <SampleData />
