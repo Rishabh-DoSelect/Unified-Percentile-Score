@@ -35,6 +35,7 @@ export function Debugger() {
     problems: null,
     candidates: null,
     cvs: null,
+    jd: null,
   });
   const [generatedData, setGeneratedData] = useState<GeneratedData>({ jd: null, structure: null });
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
@@ -44,17 +45,19 @@ export function Debugger() {
   useEffect(() => {
     const fetchSamples = async () => {
       try {
-        const [problemsRes, candidatesRes, cvsRes] = await Promise.all([
+        const [problemsRes, candidatesRes, cvsRes, jdRes] = await Promise.all([
           fetch('/sample-data/sample-problems.json'),
           fetch('/sample-data/sample-candidates.json'),
           fetch('/sample-data/sample-cvs.csv'),
+          fetch('/sample-data/sample-jd.txt'),
         ]);
-        const [problems, candidates, cvs] = await Promise.all([
+        const [problems, candidates, cvs, jd] = await Promise.all([
             problemsRes.text(),
             candidatesRes.text(),
             cvsRes.text(),
+            jdRes.text(),
         ]);
-        setRawFiles({ problems, candidates, cvs });
+        setRawFiles({ problems, candidates, cvs, jd });
       } catch (error) {
         console.error('Failed to load sample data:', error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load sample data files.' });
@@ -68,13 +71,17 @@ export function Debugger() {
         toast({ variant: 'destructive', title: 'Missing Test Structure', description: 'Please generate the test structure CSV first.' });
         return;
     }
+    if (!rawFiles.jd) {
+        toast({ variant: 'destructive', title: 'Missing JD Text File', description: 'Sample JD file could not be loaded.' });
+        return;
+    }
     setIsLoading(prev => ({...prev, jd: true}));
     setTestResults([]);
     try {
         const testStructure = parseCsv<TestStructure>(generatedData.structure);
         const skills = [...new Set(testStructure.map(s => s.skill).filter(Boolean))];
         const generatedYaml = await generateJdFromText({
-          jobDescription: 'A sample job description for a data scientist requiring Python, SQL, and machine learning skills.',
+          jobDescription: rawFiles.jd,
           skills,
           role: "Sample Data Scientist",
         });
@@ -218,7 +225,7 @@ export function Debugger() {
                     {isLoading['structure'] ? <Loader2 className="animate-spin" /> : <Wand2 />}
                     Generate Test Structure
                 </Button>
-                 <Button onClick={handleGenerateJd} disabled={!generatedData.structure || isLoading['jd']}>
+                 <Button onClick={handleGenerateJd} disabled={!generatedData.structure || !rawFiles.jd || isLoading['jd']}>
                     {isLoading['jd'] ? <Loader2 className="animate-spin" /> : <Wand2 />}
                     Generate JD Weights
                 </Button>

@@ -1,0 +1,29 @@
+**Job Title: Senior Data Scientist, Growth Analytics**
+
+**Location:** San Francisco, CA (Hybrid)
+
+**About the team:**
+
+The Growth Analytics team is at the core of our user acquisition and engagement strategy. We are a data-driven group of analysts and scientists who partner with marketing, product, and engineering teams to understand user behavior and drive sustainable growth. We live and breathe data, and we are passionate about turning insights into actionable strategies.
+
+**About the role:**
+
+We are looking for an experienced Senior Data Scientist to join our team. In this role, you will be responsible for leading complex analytical projects, building predictive models, and running experiments to optimize our growth funnel. You will work with large-scale datasets to uncover opportunities, identify trends, and provide recommendations to key stakeholders. Your work will directly impact our ability to attract and retain users.
+
+**Responsibilities:**
+
+- Analyze user acquisition channels, conversion rates, and user engagement metrics to identify key growth drivers and areas for improvement.
+- Design and implement A/B tests and other experiments to validate hypotheses and optimize marketing campaigns and product features.
+- Develop and deploy machine learning models for user segmentation, churn prediction, and lifetime value forecasting.
+- Build and maintain dashboards and reports to track key performance indicators (KPIs) and communicate insights to the wider organization.
+- Collaborate with engineers to ensure data quality and build robust data pipelines.
+- Mentor junior analysts and data scientists on the team.
+
+**Qualifications:**
+
+- 5+ years of experience in a data science or analytics role, preferably in a growth or marketing context.
+- Strong proficiency in SQL for data manipulation and querying.
+- Expert-level programming skills in Python, including experience with data analysis libraries (e.g., Pandas, NumPy, Scikit-learn).
+- Proven experience with statistical analysis, experimental design, and A/B testing.
+- Hands-on experience building and deploying machine learning (ML) models in a production environment. A solid understanding of ML Theory is crucial.
+- Excellent communication skills, with the ability to explain complex technical concepts to non-technical audiences.
