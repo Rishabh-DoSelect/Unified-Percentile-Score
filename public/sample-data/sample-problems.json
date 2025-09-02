@@ -1,35 +1,165 @@
-
 [
-    {
-        "problem_slug": "S1",
-        "problem_name": "Python Basics",
-        "tags": ["Python", "Programming"],
-        "insight_tags": "Python",
-        "problem_score": 100,
-        "correct_answer": null
-    },
-    {
-        "problem_slug": "S2",
-        "problem_name": "Advanced Python",
-        "tags": ["Python", "Object-Oriented"],
-        "insight_tags": "Python",
-        "problem_score": 100,
-        "correct_answer": null
-    },
-    {
-        "problem_slug": "S3",
-        "problem_name": "SQL Queries",
-        "tags": ["SQL", "Database"],
-        "insight_tags": "SQL",
-        "problem_score": 100,
-        "correct_answer": null
-    },
-    {
-        "problem_slug": "S4",
-        "problem_name": "Data Structures",
-        "tags": ["Theory", "MCQ"],
-        "insight_tags": "Theory",
-        "problem_score": 100,
-        "correct_answer": "[\"Array\",\"Stack\"]"
-    }
+  {
+    "tags": "Verified, Reverified, Java, Arraylist", 
+    "private_tags": "", 
+    "sample_solution": {
+      "java8": "import java.util.*;\nclass ArrayListOps {\n    public ArrayList<Integer> convertArrayListtoInt(int n)\n    {\n        ArrayList<Integer> list = new ArrayList<Integer>();\n        for(int i=0; i<n; i++)\n            list.add(0);\n        return list;\n    }\n    public  ArrayList<Integer> reverse(ArrayList<Integer> list) {\n        ArrayList<Integer> b = new ArrayList<Integer>();\n        for (int i = list.size() - 1; i >= 0; i--)\n            b.add(list.get(i));\n        return b;\n    }\n}"
+    }, 
+    "problem_type": "Coding", 
+    "problem_slug": "x3qa1", 
+    "problem_name": "Collections in java", 
+    "level": "MED", 
+    "penalty": 0, 
+    "problem_decription": "Your task here is to implement a Java code based on the following specifications. Note that your code should match the specifications in a precise manner. Consider default visibility of classes, data fields and methods unless mentioned otherwise.Specifications:class definitions:\n  class ArrayListOps:\n  ﻿\n   method definitions: \n\n    convertArrayListtoInt(int n):\n        return type: ArrayList<Integer> \n        visibilty: public\n  ﻿\n    reverse(ArrayList<Integer> list):\n        return type: ArrayList<Integer>\n        visibilty: public\nYou don't need to implement the main() method. It has already been implemented as a part of the test-cases. It contains an ArrayList of integers.Task:Your task is to create a Source  and implement the following:convertArrayListtoInt(int n): Method to create an arrayList with number of components n and set components to 0reverse(ArrayList<Integer> list): Method to Reverse listImportant:To check your program, you can use the main() method (in Source class) given in the stub. You can make suitable function calls and use RUN CODE button to check your main() function output.﻿Sample InputArrayList<Integer> list = new ArrayList<Integer>(Arrays.asList(10, 25, 33, 28, 10, 12));\n\nArrayListOps o = new ArrayListOps();\n\nSystem.out.println(o.convertArrayListtoInt(4));\nSystem.out.println(o.reverse(list));\nSample Output[0, 0, 0, 0]\n[12, 10, 28, 33, 25, 10]", 
+    "problem_score": 100, 
+    "insight_tags": "Arraylist", 
+    "correct_answer": null
+  }, 
+  {
+    "tags": "Stream API, Reverified, Java8", 
+    "private_tags": "Java, Stream API", 
+    "sample_solution": {
+      "java8": "import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.Stream;\nclass Employee {\n    String name;\n    int salary;\n    Employee(String n, int s) {\n        this.name = n;\n        this.salary = s;\n    }\n\n    @Override\n    public String toString() {\n        StringBuilder sb = new StringBuilder(\"<\");\n        sb.append(\"name: \");\n        sb.append(name);\n        sb.append(\" salary: \");\n        sb.append(\"\" + salary+\">\");\n        return sb.toString();\n\n    }\n\n    public String getName() {\n        return name;\n    }\n\n    public void setName(String name) {\n        this.name = name;\n    }\n\n    public int getSalary() {\n        return salary;\n    }\n\n    public void setSalary(int salary) {\n        this.salary = salary;\n    }\n}\nclass EmployeeInfo{\n    enum SortMethod {BYNAME, BYSALARY};\n    Function<Employee, String> byName = e -> e.getName();\n    Function<Employee, Integer> bySalary = e -> e.getSalary();\n\n    public List<Employee> sort(List<Employee> emps, final SortMethod method) {\n        if(method == SortMethod.BYNAME) {\n            Collections.sort(emps, Comparator.comparing(byName).thenComparing(bySalary));\n        } else {\n            Collections.sort(emps, Comparator.comparing(bySalary).thenComparing(byName));\n        }\n        return emps;\n    }\n    // public Employee getThirdInCollection(Collection<Employee> entities) {\n    //     return entities.stream().skip(2).findFirst().get();\n    // }\n    public boolean isCharacterPresentInAllNames(Collection<Employee> entities, String character)\n    {\n        return entities.stream().allMatch((s) -> s.getName().toLowerCase().contains(character.toLowerCase()));\n    }\n}"
+    }, 
+    "problem_type": "Coding", 
+    "problem_slug": "9g43p", 
+    "problem_name": "Employee Verification Code", 
+    "level": "MED", 
+    "penalty": 0, 
+    "problem_decription": "Your task here is to implement a Java code based on the following specifications. Note that your code should match the specifications in a precise manner. Consider default visibility of classes, data fields and methods unless mentioned otherwise.Specifications:class definitions:\n  class Employee:\n    data fields:\n      name: String\n      salary: int\n    Implement a Constructor using the class variables.\n    Implement getter setter methods with public visibility.\n  class EmployeeInfo:\n    enum definition:\n      named constants: BYNAME\n                       BYSALARY\n    method definitions:\n      sort(List<Employee> emps, final SortMethod method): Method to return sorted list by name and by salary using SortMethod\n           Return type: List<Employee>\n           Visibility: public\n      isCharacterPresentInAllNames(Collection<Employee> entities, String character): method to check if Employee list contains a name starting with a specific character\n           Return type: boolean\n           Visibility: public\nTask:Create an Employee class which has the following members: String name;\n int salary;\nDefine parameterized constructor.Define getter method for all instance variables with public visibility.(getName(),...)Define setter methods for all instance variables with public visibility.(setName(),....)Create an EmployeeInfo class which performs following operations (as per the given requirements) using StreamAPI:enum SortMethod : representing a group of named constants BYNAME and BYSALARYsort(List<Employee> emps, final SortMethod method): Method to return sorted list by name and by salary using SortMethodisCharacterPresentInAllNames(Collection<Employee> entities, String character): Method to check if Employee list contains a name starting with a specific characterImplement using Lambda expressions.Following has been done for you:String toString() method, it's part of code stub, don't edit it else your test-cases might failSample InputList<Employee> emps = new ArrayList<>();\nemps.add(new Employee(\"Mickey\", 100000));\nemps.add(new Employee(\"Timmy\", 50000));\nemps.add(new Employee(\"Annny\", 40000));\nSample Output[<name: Annny salary: 40000>, <name: Mickey salary: 100000>, <name: Timmy salary: 50000>]\n[<name: Annny salary: 40000>, <name: Timmy salary: 50000>, <name: Mickey salary: 100000>]\nfalse\nNOTEDo not use any for loops or other control structures.Use the stream API methods for your implementations, else the test-cases might fail.Please do not write any main() method. If you want to test your code, Please use Run Code and check the output against the sample test case.", 
+    "problem_score": 100, 
+    "insight_tags": "Stream API", 
+    "correct_answer": null
+  }, 
+  {
+    "tags": "Debugging, Reverified, Arrays", 
+    "private_tags": "", 
+    "sample_solution": {
+      "java7": "import java.io.*;\nimport java.util.*;\nimport java.text.*;\nimport java.math.*;\nimport java.util.regex.*;\npublic class Source {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        ArrayList<Integer> al = new ArrayList<Integer>();\n        ArrayList<Integer> fin = new ArrayList<Integer>();\n        int in = sc.nextInt();\n        for(int i=0;i<in;i++)\n            al.add(sc.nextInt());\n        int res = 1;\n        for(int i=0;i<al.size();i++){\n            res = 1;\n            for(int j=0;j<al.size();j++){\n                if(i==j)\n                    continue;\n                res = res*al.get(j);    \n            }\n            fin.add(res);\n        }\n        for(int i:fin)\n            System.out.println(i);\n   }\n}", 
+      "java8": "import java.io.*;\nimport java.util.*;\nimport java.text.*;\nimport java.math.*;\nimport java.util.regex.*;\n\n// Class name should be \"Source\",\n// otherwise solution won't be accepted\npublic class Source {\n    public static void main(String[] args) {\n        \n        Scanner in = new Scanner(System.in);\n        int n = in.nextInt();\n        int x[] = new int[n];\n        int pro = 1;\n        for(int i=0;i<n;i++) {\n                x[i] = in.nextInt();\n                pro*=x[i];\n        }\n        for(int i=0;i<n;i++){\n            System.out.println(pro/x[i]);\n        }\n   }\n}\n"
+    }, 
+    "problem_type": "Coding", 
+    "problem_slug": "lvyga", 
+    "problem_name": "Product Debugging Me", 
+    "level": "MED", 
+    "penalty": 0, 
+    "problem_decription": "Problem StatementIn this problem, you have a Java code which aims to convert the given input to an array and modify the array in such a way that each index will have a product of all numbers present in the array except the number stored in the current index.Input FormatFirst line denotes the number of integers n in the arrayNext n lines contain all the elements to be included in the array Output FormatFinal array with one element in each lineEvaluation ParametersSample Input5\n1\n2\n3\n4 \n5\nSample Output120\n60\n40\n30\n24\nExplanationAt index 0 the product excluding element 1 is 2*3*4*5=120At index 1 the product excluding element 2 is 1*3*4*5=60At index 2 the product excluding element 3 us 1*2*4*5=40Likewise for all the other elementsTASK:A code stub will be loaded by default, which contains buggy code.You have to debug the solution code so that all test-cases pass.", 
+    "problem_score": 75, 
+    "insight_tags": "Debugging", 
+    "correct_answer": null
+  }, 
+  {
+    "tags": "Verified, Generics, Reverified, Java", 
+    "private_tags": "", 
+    "sample_solution": {}, 
+    "option_2": "Show Generics15", 
+    "option_3": "Compiler error", 
+    "problem_type": "Multiple-choice", 
+    "problem_slug": "a64v3m", 
+    "problem_name": "Java: Possible Generics", 
+    "level": "HAR", 
+    "penalty": 0, 
+    "problem_decription": "Samuel has implemented the following generic code in Java. He has used both String and Integer types in the same Test class. Is this possible? If so, what would be the output of the code? The code is as follows: class Test<A, B>\n{\n    A obj1;\n    B obj2;\n    Test(A obj1, B obj2)\n    {\n        this.obj1 = obj1;\n        this.obj2 = obj2;\n    }\n    public void print(){\n        System.out.println(obj1);\n        System.out.println(obj2);\n    }\n}\nclass Main\n{\n    ﻿public static void main (String[] args){\n        Test<String, Character> obj = new Test<String, Character>(\"Show Generics\", 15);\n\n        obj.print();\n    }\n}", 
+    "problem_score": 20, 
+    "insight_tags": "Generics", 
+    "correct_answer": [
+      "3"
+    ], 
+    "option_1": "Show Generics", 
+    "option_4": "Runtime error"
+  }, 
+  {
+    "tags": "Verified, Lambda and Streams, Java", 
+    "private_tags": "", 
+    "sample_solution": {}, 
+    "option_2": "Statement 2", 
+    "option_3": "Both Statements are true", 
+    "problem_type": "Multiple-choice", 
+    "problem_slug": "6380lv", 
+    "problem_name": "Java : Java Streams", 
+    "level": "EAS", 
+    "penalty": 0, 
+    "problem_decription": "Based on the given statements, choose the correct option -\n\nStatement 1: The parallelStream() method in Java 8 is used to create a sequential stream from a parallel stream\nStatement 2: The parallelStream() method in Java 8 is used to create a parallel stream from a sequential stream.", 
+    "problem_score": 5, 
+    "insight_tags": "Lambda and Streams", 
+    "correct_answer": [
+      "2"
+    ], 
+    "option_1": "Statement 1", 
+    "option_4": "None of the statement is true"
+  }, 
+  {
+    "tags": "ATH, Code, Verified, Reverified, Java, String Function", 
+    "private_tags": "", 
+    "sample_solution": {}, 
+    "option_2": "OO2", 
+    "option_3": "VO3", 
+    "problem_type": "Multiple-choice", 
+    "problem_slug": "xwwwa9", 
+    "problem_name": "Java: Uppercase", 
+    "level": "MED", 
+    "penalty": 0, 
+    "problem_decription": "Analyze the following Java code snippet where the original string is \"java\":public class StringManipulation {\n  public static void main(String[] args) {\n    String original = \"java\";\n    String result = original.replace('a', 'o').substring(1, 3).toUpperCase() + original.length();\n\n    System.out.println(result);\n  }\n}\nWhat is the output of the above code snippet?", 
+    "problem_score": 10, 
+    "insight_tags": "String Function", 
+    "correct_answer": [
+      "4"
+    ], 
+    "option_1": "VO4", 
+    "option_4": "OV4"
+  }, 
+  {
+    "tags": "Spring Boot, Maven, Reverified, MySQL, React 18.2", 
+    "private_tags": "", 
+    "sample_solution": {}, 
+    "problem_type": "Project Based : FullStack", 
+    "problem_slug": "r0aowl", 
+    "problem_name": "[React + Spring, MySQL] Gadgets Application", 
+    "level": "EAS", 
+    "penalty": 0, 
+    "problem_decription": "Spring Boot, React and MySQL: Electronics Gadgets Store ApplicationObjectiveThis project aims to create an application for an electronics dealer to manage their gadget inventory.Develop a user-friendly application to:Maintain a list of electronic gadgets offered by the store.Display individual gadget details with all details.Allow users to navigate between gadget overview and detailed views.Backend: Electronics Gadget APIImplement REST APIs to list all the gadget's data and also retrieve a specific gadget by ID from the collection of the Gadgets.The Gadgets entity should have the following attributes:id: the unique id of the gadget (Integer)itemName: the name of the gadget (String)brandName: the brand name of the gadget (String)units: the number of units available (Integer)price: the price of the gadgets per unit (Float)Here is an example of a Gadgets JSON object:[\n    {\n        \"id\": 1,\n        \"itemName\": \"Mobile\",\n        \"brandName\": \"Vivo\",\n        \"units\": 5,\n        \"price\": 13000.0\n    },\n    {\n        \"id\": 2,\n        \"itemName\": \"Washing Machine\",\n        \"brandName\": \"LG\",\n        \"units\": 3,\n        \"price\": 15000.0\n    }\n]\nYou are provided with the implementation of the models required for all the APIs. Your task is to implement a set of REST services that exposes the endpoints and allows for listing all the gadgets and listing one gadget based on the ID.| API Route               | API Type | Success Response Code  | Validation Error Code  |\n|-------------------------|----------|------------------------|------------------------|\n| /gadgets                | GET      | 200                    | 404                    |\n| /gadgets/{gadgetsId}    | GET      | 200                    | 404                    |\nTask 1: Service Layer Implementation in GadgetsServiceImplement the business logic in the service layer using GadgetsRepositoryMethod Details:getAllItems(): Implement the GET method which should list all the gadgets.getItemsById(): Implement the GET method which should list a gadget by ID.Task 2: REST API Endpoints in GadgetsControllerGET request to /gadgetsReturn a collection of all the gadgetsResponse Body: JSON object representing the gadgets details.HTTP Status Code:200 (OK) - If the details of all the gadgets are found404 (Not Found) - If there are no such gadgetsGET request to /gadgets/{gadgetsId}Return a single gadget based on the gadgetsIdResponse Body: JSON object representing the details of a gadget.HTTP Status Code:200 (OK) - If the details of the requested gadgetsId are found404 (Not Found) - If there is no such gadget for the given gadgetsIdComplete the given project so that it passes all the test cases when running the provided unit tests.Example Requests and Responses:GET request to /gadgets:The response code is 200 and the response body, when converted to JSON, is as follows:[\n\t{\n    \t\"id\": 1,\n    \t\"itemName\": \"Mobile\",\n    \t\"brandName\": \"Vivo\",\n    \t\"units\": 5,\n    \t\"price\": 13000.0\n\t},\n\t{\n    \t\"id\": 2,\n    \t\"itemName\": \"Washing Machine\",\n    \t\"brandName\": \"LG\",\n    \t\"units\": 3,\n    \t\"price\": 15000.0\n\t}\n]\nGET request to /gadgets/{gadgetsId}:The response code is 200 and the response body, when converted to JSON, is as follows:{\n\t\"id\": 1,\n\t\"itemName\": \"Mobile\",\n\t\"brandName\": \"Vivo\",\n\t\"units\": 5,\n\t\"price\": 13000.0\n}\nFrontend: Electronics Gadget ApplicationUIComponentsThe application consists of four primary components:GadgetShowCase:Fetches a list of gadgets from the server using a GET request to {apiUrl}gadgets.Stores the retrieved data as an array in the component's state.Iterates through the gadget array and renders each gadget using the GadgetCard component.Each gadget card is clickable and routes to the detailed view (/gadgets/{id}) upon click, where id is the specific gadget's ID.Renders on the application's root path (/).Assigns a unique data-testid attribute (gadgetcard-{id}) to each gadget card for testing purposes.GadgetCard:Presents essential gadget details within the user interface.Includes a h1 tag with data-testid=\"title-{id} displaying the brand name and item name separated by a space.Features a h3 tag with data-testid=\"price-{id} showcasing the gadget's price.Integrates data test IDs for effective component testing.GadgetDetailsWrapper:A functional component responsible for rendering on the /gadget/:id route.Extracts the gadget ID from the URL parameters.Passes the extracted ID as a prop to the GadgetDetails component.GadgetDetails:Retrieves detailed information for a specific gadget using a GET request to {apiUrl}gadgets/{id}.Displays the fetched data in the following format:Header with data-testid=\"header\" displaying \"brandName itemName\".h3 elements with designated data test IDs (\"price\", \"units\", \"brand\", \"category\") showcasing the gadget's price, units available, brand, and category, respectively.A link with data-testid=\"goBackBtn\" facilitating navigation back to the gadget overview (/).RoutingRouting logic is implemented within the App.js component.TestingData test IDs (data-testid) are crucial for ensuring component functionality through automated testing.Expected Live PreviewCommandsInstall Packages & Build Backend::cd $HOME/$NAME/backend && mvn clean install -DskipTests\nThis command would run automatically when the IDE loads, however, if there is some issue, you may have to run it manually.Start Backend API Server:cd $HOME/$NAME/backend && mvn clean spring-boot:run -DskipTests\nThis command will start the server.Once the server is started, navigate to the Thunder Client's tab  and click on New Request.Test the API endpoints by sending specific requests to http://localhost:8000/{endpoints}. You can view the JSON response in the \"Response\" tab.Run Backend Test Cases:cd $HOME/$NAME/backend && mvn clean test\nThis will run the test cases in the terminal.Install Frontend Packages:cd $HOME/$NAME/frontend && npm install\nThis command would run automatically when the IDE loads, however if there is some issue, you may have to run it manually.Start Frontend Dev Server:cd $HOME/$NAME/frontend && npm start\nThis command will start the dev server. You can view the Live Preview once the server is started in multiple ways:Click the Preview in Editor option that pops up at the bottom-right cornerClick the Open Preview option in the Run menuRun Frontend Test Cases:cd $HOME/$NAME/frontend && npm test\nThis will run the frontend test cases in the terminal.These commands can be executed in the terminal or by selecting options from the Run menu.EnvironmentReact Version: 18.2.0Java version: 11Maven version: 3.6.3Spring Boot version: 2.6.1Frontend Default Port: 3000Backend Default Port: 8000", 
+    "problem_score": 50, 
+    "insight_tags": "Spring Boot, React 18.2", 
+    "correct_answer": null
+  }, 
+  {
+    "tags": "Reverified, Caching, Caching Mechanism, Java", 
+    "private_tags": "", 
+    "sample_solution": {}, 
+    "option_2": "javax.cache (JCache)", 
+    "option_3": "java.io.File", 
+    "problem_type": "Multiple-choice", 
+    "problem_slug": "q0gm3o", 
+    "problem_name": "Java: Cache API", 
+    "level": "MED", 
+    "penalty": 0, 
+    "problem_decription": "Which Java API is commonly used to implement caching in a Java application?", 
+    "problem_score": 10, 
+    "insight_tags": "Caching", 
+    "correct_answer": [
+      "2"
+    ], 
+    "option_1": "java.util.concurrent", 
+    "option_4": "java.net.Socket"
+  }, 
+  {
+    "tags": "Debugging, Reverified, Java", 
+    "private_tags": "", 
+    "sample_solution": {}, 
+    "option_2": "Static references to objects", 
+    "option_3": "Circular references between objects", 
+    "problem_type": "Multiple-choice", 
+    "problem_slug": "1861eg", 
+    "problem_name": "Java: Memory Leak", 
+    "level": "EAS", 
+    "penalty": 0, 
+    "problem_decription": "Which of these is not a cause of a memory leak in Java?", 
+    "problem_score": 10, 
+    "insight_tags": "Debugging", 
+    "correct_answer": [
+      "4"
+    ], 
+    "option_1": " Holding references to objects that are no longer needed", 
+    "option_4": "Use of weak references"
+  }
 ]

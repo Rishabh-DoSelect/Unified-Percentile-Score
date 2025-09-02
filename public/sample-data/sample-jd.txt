@@ -27,3 +27,122 @@ We are looking for an experienced Senior Data Scientist to join our team. In thi
 - Proven experience with statistical analysis, experimental design, and A/B testing.
 - Hands-on experience building and deploying machine learning (ML) models in a production environment. A solid understanding of ML Theory is crucial.
 - Excellent communication skills, with the ability to explain complex technical concepts to non-technical audiences.
+Job Title: Java Full Stack Developer - B2B Content Development​
+Location: [Bangalore - HSR Layout]​
+Employment Type: [Full-Time/Contract] 
+
+ 
+
+About the Role 
+We are looking for a skilled Java Full Stack Developer to join our B2B Content Development 
+Team. The ideal candidate will be responsible for creating technical projects, reviewing code, 
+and serving as the Subject Matter Expert (SME) for any related technical work. This role 
+requires expertise in backend technologies using Java and Spring Boot, along with frontend 
+frameworks such as Angular or React. Additionally, the candidate should be well-versed in 
+databases, DevOps, testing frameworks, and security best practices. 
+
+ 
+
+Key Responsibilities 
+Project Development & Content Creation: 
+
+●​ Design and develop real-world technical projects for content creation. 
+●​ Ensure projects align with industry standards and best practices. 
+●​ Work on scalable applications using Java, Spring Boot, and Hibernate. 
+
+Code Review & Quality Assurance: 
+
+●​ Review and validate backend and frontend code for accuracy and efficiency. 
+●​ Optimize application performance and database queries. 
+●​ Ensure all code adheres to clean coding principles. 
+
+Technical Subject Matter Expertise: 
+
+●​ Act as an SME for Java Full Stack-related technical content. 
+●​ Assist in answering technical queries and guiding the team. 
+●​ Provide expertise in Java, Spring Boot, REST APIs, and Frontend frameworks. 
+
+Database Management: 
+
+●​ Design and manage SQL and NoSQL databases such as MySQL, PostgreSQL, and 
+MongoDB. 
+
+●​ Optimize database queries and ensure efficient data retrieval. 
+
+
+
+DevOps & CI/CD: 
+
+●​ Utilize Git for version control and collaboration. 
+●​ Implement CI/CD pipelines using Jenkins, GitHub Actions, or similar tools. 
+●​ Work with Docker and Kubernetes for containerization and orchestration. 
+
+Testing & Security Best Practices: 
+
+●​ Write and review unit and integration test cases using JUnit, Mockito, Jest, Mocha, 
+etc. 
+
+●​ Implement security best practices, including JWT authentication, OAuth 2.0, and data 
+encryption. 
+
+Collaboration & Agile Development: 
+
+●​ Work with cross-functional teams to create, review, and improve technical content. 
+●​ Follow Agile/Scrum methodologies for efficient project delivery. 
+
+ 
+
+Required Skills & Qualifications 
+Category Skills & Technologies Experience Description 
+
+Level 
+
+Backend Java, Spring Boot, Intermediate to Experience in building REST 
+Development Hibernate Advanced APIs and scalable backend 
+
+services. 
+
+Frontend HTML, CSS, JavaScript, Intermediate Strong knowledge of UI/UX 
+Development React.js/Angular design and frontend 
+
+frameworks. 
+
+Database MySQL, PostgreSQL, Intermediate Hands-on experience in 
+Management MongoDB writing optimized queries. 
+
+DevOps & Docker, Kubernetes, Intermediate Knowledge of automation, 
+CI/CD Jenkins, Git version control, and 
+
+deployment. 
+
+Testing JUnit, Mockito, Jest, Intermediate Ability to write and automate 
+Mocha test cases. 
+
+
+
+Security JWT, OAuth 2.0, CORS, Intermediate Experience implementing 
+CSRF authentication and security 
+
+best practices. 
+ 
+
+Preferred Skills 
+●​ Experience with GraphQL and WebSockets. 
+●​ Knowledge of cloud platforms like AWS, Azure, or GCP. 
+●​ Exposure to Microservices architecture. 
+●​ Basic understanding of Linux commands and shell scripting. 
+
+ 
+
+Why Join Us? 
+●​ Growth Opportunities: Work on challenging technical content projects and expand your 
+
+expertise. 
+●​ Skill Development: Gain hands-on experience with modern development tools and 
+
+methodologies. 
+●​ Dynamic Team: Join a team that values collaboration, innovation, and technical 
+
+excellence. 
+
+Apply Now and be part of an exciting journey in Java Full Stack Content Development!
