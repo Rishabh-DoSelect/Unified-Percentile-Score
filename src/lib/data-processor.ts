@@ -49,7 +49,7 @@ export const parseCsv = <T>(content:string): T[] => {
 export const transformPlatformData = (platformData: PlatformData[], testStructure: TestStructure[]): Candidate[] => {
     const candidateMap: Map<string, Candidate> = new Map();
 
-    const structureMap = new Map(testStructure.map(s => [s.section_name, s]));
+    const structureMap = new Map(testStructure.map(s => [s.section_id, s]));
 
     for (const record of platformData) {
         const email = record.email;
@@ -72,7 +72,7 @@ export const transformPlatformData = (platformData: PlatformData[], testStructur
         candidate.attempts += record.run_details?.testcases_total || 1; // Fallback to 1 attempt
         
         // Find corresponding section in test structure
-        const section = structureMap.get(record.problem_name);
+        const section = structureMap.get(record.problem_slug);
         if (section) {
             let score = 0;
             if (record.run_details && typeof record.run_details.score === 'number') {
@@ -361,6 +361,15 @@ export async function processCandidateData(
   // 3. Parse optional CVs and generate signals
   let cvSignalsMap: Map<string, CvSignal> = new Map();
   if (cvsCsv) {
+    // Validate CV headers before full parsing
+    const headerCheck = Papa.parse(cvsCsv, { preview: 1, header: true, transformHeader: header => header.toLowerCase().replace(/\s+/g, '_') });
+    const requiredHeaders = ['name', 'email', 'cv_text'];
+    const missingHeaders = requiredHeaders.filter(h => !headerCheck.meta.fields?.includes(h));
+
+    if (missingHeaders.length > 0) {
+      throw new Error(`The CVs CSV file is missing required columns: ${missingHeaders.join(', ')}. Please ensure the file has 'name', 'email', and 'cv_text' headers.`);
+    }
+
     const cvData = parseCsv<CvData>(cvsCsv);
     const cvSignalPromises = cvData.map(async (cv) => {
         if (!cv.email || !cv.cv_text) return null;
