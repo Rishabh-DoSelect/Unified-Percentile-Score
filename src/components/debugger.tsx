@@ -123,7 +123,7 @@ export function Debugger() {
       try {
           const result = await testFn();
           setTestResults([result]);
-          toast({ title: 'Test Complete', description: `${result.name} score: ${typeof result.score === 'number' ? (result.score * 100).toFixed(1) + '%' : result.score}` });
+          toast({ title: 'Test Complete', description: `${result.name} score: ${typeof result.score === 'number' ? (result.score * 100).toFixed(2) + '%' : result.score}` });
       } catch (error) {
           console.error(`Error running test "${testName}":`, error);
           const message = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -163,17 +163,22 @@ export function Debugger() {
   const testKnowledgeEvidence = async (): Promise<TestResult> => {
       if (!rawFiles.cvs) throw new Error('CVs sample data not loaded.');
       const { jdSettings, candidates } = getTestData();
-      const candidate = candidates[0];
       const cvData = parseCsv<CvData>(rawFiles.cvs);
-      const sampleCv = cvData.find(c => c.email === candidate.email);
-      if (!sampleCv) throw new Error(`Could not find sample CV for ${candidate.email}`);
+      
+      const cvEmails = new Set(cvData.map(c => c.email));
+      const candidateWithCv = candidates.find(c => cvEmails.has(c.email));
+      if (!candidateWithCv) {
+        throw new Error('Could not find a candidate with a corresponding CV in the sample data.');
+      }
+      
+      const sampleCv = cvData.find(c => c.email === candidateWithCv.email)!;
 
       const signals = await getCvSignals({ resumeText: sampleCv.cv_text });
       const score = calculateKnowledgeEvidence(signals, jdSettings);
       return {
           name: 'Knowledge Evidence',
           score,
-          inputs: { cvSignals: signals, jdSettings }
+          inputs: { cvSignals: signals, jdSettings, candidate: candidateWithCv }
       };
   };
 
@@ -280,3 +285,5 @@ export function Debugger() {
     </Card>
   );
 }
+
+    
