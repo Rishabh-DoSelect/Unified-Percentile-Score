@@ -164,7 +164,7 @@ export function Debugger() {
       if (!rawFiles.cvs) throw new Error('CVs sample data not loaded.');
       const { jdSettings, candidates } = getTestData();
       const cvData = parseCsv<CvData>(rawFiles.cvs);
-      
+
       const cvEmails = new Set(cvData.map(c => c.email));
       const candidateWithCv = candidates.find(c => cvEmails.has(c.email));
       if (!candidateWithCv) {

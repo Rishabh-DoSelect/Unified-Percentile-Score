@@ -41,6 +41,7 @@ export interface Candidate {
 }
 
 export interface CvData {
+  mail_id: any;
   name: string;
   email: string;
   cv_text: string;
