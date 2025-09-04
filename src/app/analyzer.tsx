@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import { Debugger } from '@/components/debugger';
+import Papa from 'papaparse';
 
 
 interface FileState {
@@ -90,6 +91,24 @@ export default function Analyzer() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
+
+      if (fileType === 'cvs') {
+        const headerCheck = Papa.parse(content, { preview: 1, header: true, transformHeader: header => header.toLowerCase().replace(/\s+/g, '_') });
+        const requiredHeaders = ['name', 'email', 'cv_text'];
+        const missingHeaders = requiredHeaders.filter(h => !headerCheck.meta.fields?.includes(h));
+        
+        if (missingHeaders.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid CSV Headers',
+                description: `The CVs file is missing required columns: ${missingHeaders.join(', ')}. Please check the file and try again.`,
+            });
+             // Clear the input so the user can re-upload
+            e.target.value = '';
+            return;
+        }
+      }
+
       if (fileType === 'problems') {
         setProblemsJson(content);
         setFileNames(prev => ({...prev, problems: file.name}));
@@ -476,3 +495,5 @@ export default function Analyzer() {
     </TooltipProvider>
   );
 }
+
+    

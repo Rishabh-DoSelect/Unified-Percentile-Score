@@ -361,15 +361,6 @@ export async function processCandidateData(
   // 3. Parse optional CVs and generate signals
   let cvSignalsMap: Map<string, CvSignal> = new Map();
   if (cvsCsv) {
-    // Validate CV headers before full parsing
-    const headerCheck = Papa.parse(cvsCsv, { preview: 1, header: true, transformHeader: header => header.toLowerCase().replace(/\s+/g, '_') });
-    const requiredHeaders = ['name', 'email', 'cv_text'];
-    const missingHeaders = requiredHeaders.filter(h => !headerCheck.meta.fields?.includes(h));
-
-    if (missingHeaders.length > 0) {
-      throw new Error(`The CVs CSV file is missing required columns: ${missingHeaders.join(', ')}. Please ensure the file has 'name', 'email', and 'cv_text' headers.`);
-    }
-
     const cvData = parseCsv<CvData>(cvsCsv);
     const cvSignalPromises = cvData.map(async (cv) => {
         if (!cv.email || !cv.cv_text) return null;
@@ -477,3 +468,5 @@ export async function processCandidateData(
     executive_summary: finalRankedCandidates,
   };
 }
+
+    
